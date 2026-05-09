@@ -15,6 +15,7 @@ export default function SemanticSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -22,15 +23,19 @@ export default function SemanticSearch() {
     if (!query.trim()) {
       setResults([]);
       setShowResults(false);
+      setError(null);
       return;
     }
     timerRef.current = setTimeout(async () => {
       setLoading(true);
+      setError(null);
       try {
         const data = await searchBooks(query);
         setResults(data);
         setShowResults(true);
-      } catch {
+      } catch (err) {
+        console.error('Search failed:', err);
+        setError(err instanceof Error ? err.message : '搜索请求失败');
         setResults([]);
         setShowResults(true);
       } finally {
@@ -39,6 +44,8 @@ export default function SemanticSearch() {
     }, 300);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [query]);
+
+  const hasSearched = showResults && !loading;
 
   return (
     <div>
@@ -64,49 +71,68 @@ export default function SemanticSearch() {
       </div>
 
       {/* Results */}
-      {showResults && (
-        <div className="mt-4 space-y-3">
-          {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full" />
-            </div>
-          ) : results.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-              <p className="text-gray-400">未找到相关结果</p>
-            </div>
-          ) : (
-            results.map((r) => (
-              <div
-                key={r.item_id}
-                className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-gray-900">{r.title}</span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
-                        图书
+      <div className="mt-4 space-y-3">
+        {!showResults && !query.trim() && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="text-gray-300 text-5xl mb-4">&#128269;</div>
+            <p className="text-gray-500">输入关键词搜索图书</p>
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex items-center justify-center py-10">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full" />
+          </div>
+        )}
+
+        {error && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="text-red-500 text-5xl mb-4">&#9888;</div>
+            <p className="text-red-600 mb-2">搜索失败</p>
+            <p className="text-gray-500 text-sm mb-4">{error}</p>
+          </div>
+        )}
+
+        {hasSearched && !error && results.length === 0 && (
+          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+            <div className="text-gray-300 text-5xl mb-4">&#128270;</div>
+            <p className="text-gray-500">未找到相关图书</p>
+            <p className="text-gray-400 text-sm mt-2">请尝试其他关键词</p>
+          </div>
+        )}
+
+        {hasSearched && !error && results.length > 0 && (
+          results.map((r) => (
+            <div
+              key={r.item_id}
+              className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-gray-900">{r.title}</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
+                      图书
+                    </span>
+                    {!r.available && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-700">
+                        已借出
                       </span>
-                      {!r.available && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-700">
-                          已借出
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500">{r.author}</p>
-                    {r.clc_number && (
-                      <p className="text-xs text-gray-400 mt-1">分类号: {r.clc_number}</p>
                     )}
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 ml-4">
-                    <span className="text-xs font-bold text-blue-600">{Math.round(r.score * 100)}%</span>
-                  </div>
+                  <p className="text-sm text-gray-500">{r.author}</p>
+                  {r.clc_number && (
+                    <p className="text-xs text-gray-400 mt-1">分类号: {r.clc_number}</p>
+                  )}
+                </div>
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 ml-4">
+                  <span className="text-xs font-bold text-blue-600">{Math.round(r.score * 100)}%</span>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      )}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

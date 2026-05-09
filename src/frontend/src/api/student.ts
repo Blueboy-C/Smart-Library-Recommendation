@@ -1,12 +1,15 @@
 import axios from 'axios';
 import type { StudentProfile, RecommendItem, FeedbackStats } from '../types';
+import { authHeader } from './auth';
 
 const API = 'http://localhost:8000/api';
-// 默认学生ID（后续可加登录切换）
+// 默认学生ID（未登录时使用）
 const DEFAULT_STUDENT = 'S2022001';
 
 export async function getProfile(studentId = DEFAULT_STUDENT): Promise<StudentProfile> {
-  const resp = await axios.get(`${API}/student/${studentId}/profile`);
+  const resp = await axios.get(`${API}/student/${studentId}/profile`, {
+    headers: authHeader(),
+  });
   return resp.data;
 }
 
@@ -16,6 +19,7 @@ export async function getRecommendations(
 ): Promise<{ student_id: string; items: RecommendItem[] }> {
   const resp = await axios.get(`${API}/student/${studentId}/recommendations`, {
     params: { top_k: topK },
+    headers: authHeader(),
   });
   return resp.data;
 }
@@ -27,14 +31,18 @@ export async function postBehavior(
   staySeconds = 0,
   scrollPercent = 0,
 ) {
-  await axios.post(`${API}/student/${studentId}/behavior`, {
-    student_id: studentId,
-    item_id: itemId,
-    action_type: actionType,
-    source: 'recommend',
-    stay_seconds: staySeconds,
-    scroll_percent: scrollPercent,
-  });
+  await axios.post(
+    `${API}/student/${studentId}/behavior`,
+    {
+      student_id: studentId,
+      item_id: itemId,
+      action_type: actionType,
+      source: 'recommend',
+      stay_seconds: staySeconds,
+      scroll_percent: scrollPercent,
+    },
+    { headers: authHeader() },
+  );
 }
 
 export async function postFeedback(
@@ -49,6 +57,7 @@ export async function postFeedback(
       item_id: itemId,
       feedback_type: feedbackType,
     },
+    { headers: authHeader() },
   );
 }
 
@@ -58,11 +67,16 @@ export async function getHistory(
   stats: FeedbackStats;
   current_recommendations: RecommendItem[];
 }> {
-  const resp = await axios.get(`${API}/student/${studentId}/history`);
+  const resp = await axios.get(`${API}/student/${studentId}/history`, {
+    headers: authHeader(),
+  });
   return resp.data;
 }
 
 export async function searchBooks(query: string) {
-  const resp = await axios.get(`${API}/search`, { params: { q: query } });
+  const resp = await axios.get(`${API}/search`, {
+    params: { q: query },
+    headers: authHeader(),
+  });
   return resp.data.results || [];
 }

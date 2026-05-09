@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 import ChatWidget from './ChatWidget';
 
 const studentNavItems = [
@@ -33,9 +34,7 @@ export default function Layout() {
           </svg>
         </button>
         <span className="font-semibold text-gray-800 text-lg">智慧图书馆</span>
-        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
-          张
-        </div>
+        <MobileUserIcon />
       </div>
 
       {/* Sidebar overlay */}
@@ -113,15 +112,7 @@ export default function Layout() {
 
           {/* User info */}
           <div className="border-t border-gray-100 p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
-                张
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-800">张三</div>
-                <div className="text-xs text-gray-400">S20220001</div>
-              </div>
-            </div>
+            <UserInfo />
           </div>
         </div>
       </aside>
@@ -135,6 +126,50 @@ export default function Layout() {
 
       {/* Chat Widget */}
       <ChatWidget />
+    </div>
+  );
+}
+
+function MobileUserIcon() {
+  const user = useAuthStore((s) => s.user);
+  const displayName = user?.username || '未登录';
+  return (
+    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+      {displayName.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+function UserInfo() {
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
+  const displayName = user?.username || '未登录';
+  const displayId = user?.student_id || user?.dept || user?.role || '';
+
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+          {displayName.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <div className="text-sm font-medium text-gray-800">{displayName}</div>
+          <div className="text-xs text-gray-400">{displayId}</div>
+        </div>
+      </div>
+      <button
+        onClick={handleLogout}
+        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+        title="退出登录"
+      >
+        退出
+      </button>
     </div>
   );
 }

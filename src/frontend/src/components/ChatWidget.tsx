@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { getToken } from '../api/auth';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -38,7 +39,7 @@ export default function ChatWidget() {
     try {
       const url = `http://localhost:8000/api/dialogue?student_id=S20220001&message=${encodeURIComponent(text)}`;
       const response = await fetch(url, {
-        headers: { Accept: 'text/event-stream' },
+        headers: { Accept: 'text/event-stream', Authorization: `Bearer ${getToken()}` },
       });
 
       if (!response.ok) {

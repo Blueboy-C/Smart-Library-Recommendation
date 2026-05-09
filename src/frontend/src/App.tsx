@@ -1,5 +1,8 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthStore } from './stores/authStore';
 import Layout from './components/Layout';
+import Login from './pages/Login';
 import Recommendations from './pages/student/Recommendations';
 import Profile from './pages/student/Profile';
 import History from './pages/student/History';
@@ -10,11 +13,32 @@ import ClusterView from './pages/teacher/ClusterView';
 import InsightReport from './pages/teacher/InsightReport';
 import ResourceDetail from './pages/student/ResourceDetail';
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
+
 export default function App() {
+  const init = useAuthStore((s) => s.init);
+
+  useEffect(() => {
+    init();
+  }, [init]);
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<Layout />}>
+        <Route path="/login" element={<Login />} />
+        <Route
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/" element={<Recommendations />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/history" element={<History />} />
