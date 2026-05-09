@@ -68,23 +68,19 @@ export default function History() {
       </div>
 
       {/* Stats bar - from backend stats */}
-      {!loading && !error && stats.total_feedback > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6">
-          <div className="flex items-center gap-8">
-            <div>
-              <div className="text-2xl font-bold text-gray-900">{stats.total_feedback}</div>
-              <div className="text-xs text-gray-400 mt-1">总推荐</div>
-            </div>
-            <div className="w-px h-10 bg-gray-100" />
-            <div>
-              <div className="text-2xl font-bold text-green-600">{stats.useful}</div>
-              <div className="text-xs text-gray-400 mt-1">有用</div>
-            </div>
-            <div className="w-px h-10 bg-gray-100" />
-            <div>
-              <div className="text-2xl font-bold text-blue-600">{stats.adoption_rate}%</div>
-              <div className="text-xs text-gray-400 mt-1">采纳率</div>
-            </div>
+      {!loading && !error && (
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-xl shadow p-4 text-center">
+            <p className="text-3xl font-bold text-blue-600">{stats.total_feedback}</p>
+            <p className="text-sm text-gray-500">总推荐</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4 text-center">
+            <p className="text-3xl font-bold text-green-600">{stats.useful}</p>
+            <p className="text-sm text-gray-500">有用</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4 text-center">
+            <p className="text-3xl font-bold text-purple-600">{stats.adoption_rate}%</p>
+            <p className="text-sm text-gray-500">采纳率</p>
           </div>
         </div>
       )}

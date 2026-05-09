@@ -1,17 +1,63 @@
 import { useState, useEffect } from 'react';
 import StateWrapper from '../../components/StateWrapper';
-import { getAdminStats } from '../../api/admin';
+import { getAdminStats, updateModel } from '../../api/admin';
+
+const API = 'http://localhost:8000/api';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [modelUpdating, setModelUpdating] = useState(false);
+  const [modelMsg, setModelMsg] = useState<string | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   useEffect(() => {
     getAdminStats()
       .then(data => { setStats(data); setLoading(false); })
       .catch(err => { setError(err.message); setLoading(false); });
   }, []);
+
+  const handleImport = async () => {
+    const token = localStorage.getItem('token') || '';
+    setImportMsg('导入中...');
+    try {
+      const resp = await fetch(`${API}/admin/import/sync`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await resp.json();
+      setImportMsg(`导入完成: ${data.students}学生, ${data.books}图书, ${data.borrows}借阅`);
+      setTimeout(() => { loadStats(); setImportMsg(null); }, 2000);
+      const newStats = await getAdminStats();
+      setStats(newStats);
+    } catch {
+      setImportMsg('导入失败，请重试');
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const newStats = await getAdminStats();
+      setStats(newStats);
+    } catch {/* ignore */}
+  };
+
+  const handleModelUpdate = async () => {
+    setModelUpdating(true);
+    setModelMsg(null);
+    try {
+      const result = await updateModel();
+      setModelMsg(result.message || '模型更新成功');
+      // Refresh stats after model update
+      const newStats = await getAdminStats();
+      setStats(newStats);
+    } catch (err: unknown) {
+      setModelMsg(err instanceof Error ? err.message : '模型更新失败');
+    } finally {
+      setModelUpdating(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -34,12 +80,31 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-xl shadow p-6">
             <h3 className="font-semibold mb-3">模型状态</h3>
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-green-500" />
-              <span className="text-sm">运行正常</span>
+              <span className={`w-3 h-3 rounded-full ${modelUpdating ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
+              <span className="text-sm">{modelUpdating ? '更新中...' : '运行正常'}</span>
             </div>
-            <button className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
-              手动更新模型
+            {modelMsg && (
+              <p className="text-xs text-gray-500 mt-2">{modelMsg}</p>
+            )}
+            <button
+              onClick={handleModelUpdate}
+              disabled={modelUpdating}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {modelUpdating ? '更新中...' : '手动更新模型'}
             </button>
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <button
+                onClick={handleImport}
+                disabled={importMsg === '导入中...'}
+                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                数据同步
+              </button>
+              {importMsg && (
+                <p className="text-xs text-gray-500 mt-2">{importMsg}</p>
+              )}
+            </div>
           </div>
         </div>
       </StateWrapper>

@@ -19,6 +19,7 @@ export default function PathPlanner() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ student_id: studentId, goal: goal.trim() }),
       });
+      if (!resp.ok) throw new Error('API error');
       const data = await resp.json();
       const stepsData = data.steps || [];
       if (stepsData.length === 0 && data.message) {

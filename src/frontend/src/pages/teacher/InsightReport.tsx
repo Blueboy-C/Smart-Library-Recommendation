@@ -128,27 +128,20 @@ export default function InsightReport() {
 
             {showRaw && (
               <div className="bg-white rounded-xl border border-gray-100 p-6 overflow-x-auto">
-                <h3 className="text-base font-semibold text-gray-900 mb-4">TOP {topDomains.length} 借阅领域</h3>
+                <h3 className="text-base font-semibold text-gray-900 mb-4">数据概览</h3>
+                <p className="text-sm text-gray-500 mb-3">总借阅量: {rawData.total_borrows}</p>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100">
-                      <th className="text-left py-3 px-2 text-gray-400 font-medium">排名</th>
                       <th className="text-left py-3 px-2 text-gray-400 font-medium">领域</th>
-                      <th className="text-right py-3 px-2 text-gray-400 font-medium">借阅量</th>
-                      <th className="text-right py-3 px-2 text-gray-400 font-medium">环比变化</th>
+                      <th className="text-right py-3 px-2 text-gray-400 font-medium">借阅次数</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {topDomains.map((d: any, i: number) => (
-                      <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                        <td className="py-3 px-2 text-gray-400">#{d.rank || i + 1}</td>
-                        <td className="py-3 px-2 text-gray-800 font-medium">{d.domain}</td>
-                        <td className="py-3 px-2 text-right text-gray-700">{d.borrowCount || d.count}</td>
-                        <td className={`py-3 px-2 text-right font-medium ${
-                          (d.change || '').startsWith('+') ? 'text-green-600' : (d.change || '') === '0%' ? 'text-gray-400' : 'text-red-500'
-                        }`}>
-                          {d.change || '--'}
-                        </td>
+                    {topDomains.map(([domain, count]: [string, number]) => (
+                      <tr key={domain} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                        <td className="py-3 px-2 text-gray-800 font-medium">{domain}</td>
+                        <td className="py-3 px-2 text-right text-gray-700">{count}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -156,26 +149,6 @@ export default function InsightReport() {
               </div>
             )}
           </>
-        )}
-
-        {/* Always show domain distribution table when rawData has top_domains */}
-        {rawData?.top_domains && rawData.top_domains.length > 0 && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium text-sm mb-2">领域分布 Top {rawData.top_domains.length}</h4>
-            <table className="w-full text-sm">
-              <thead>
-                <tr><th className="text-left text-gray-500 font-medium py-1">领域</th><th className="text-right text-gray-500 font-medium py-1">借阅次数</th></tr>
-              </thead>
-              <tbody>
-                {rawData.top_domains.map(([domain, count]: [string, number]) => (
-                  <tr key={domain} className="border-t border-gray-200/50">
-                    <td className="py-1.5 text-gray-800">{domain}</td>
-                    <td className="py-1.5 text-right text-gray-700">{count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         )}
       </div>
     </StateWrapper>

@@ -3,25 +3,11 @@ import * as echarts from 'echarts';
 import ReactECharts from 'echarts-for-react';
 import StateWrapper from '../../components/StateWrapper';
 
-const CLUSTER_LABELS: Record<string, string> = {
-  deep_readers: '深度阅读者',
-  broad_explorers: '广博探索者',
-  exam_driven: '应试导向型',
-  dormant: '休眠型',
-};
-
-const CLUSTER_COLORS: Record<string, string> = {
-  deep_readers: '#3b82f6',
-  broad_explorers: '#8b5cf6',
-  exam_driven: '#f59e0b',
-  dormant: '#9ca3af',
-};
-
-const CLUSTER_ICONS: Record<string, string> = {
-  deep_readers: '📚',
-  broad_explorers: '🌐',
-  exam_driven: '🎯',
-  dormant: '💤',
+const CLUSTER_META: Record<string, { name: string; desc: string; icon: string; color: string }> = {
+  deep_readers: { name: '课外深度阅读型', desc: '借阅量大、借阅时长长的学生', icon: '📚', color: '#3b82f6' },
+  broad_explorers: { name: '跨领域探索型', desc: '借阅领域跨度大的学生', icon: '🔍', color: '#8b5cf6' },
+  exam_driven: { name: '课内考试驱动型', desc: '仅在考试周借书的学生', icon: '📝', color: '#f59e0b' },
+  dormant: { name: '无借阅休眠型', desc: '借书记录为零的学生', icon: '💤', color: '#9ca3af' },
 };
 
 const trendOption = {
@@ -42,7 +28,7 @@ export default function ClusterView() {
   const barRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [clusterData, setClusterData] = useState<Record<string, { count: number; desc: string }> | null>(null);
+  const [clusterCounts, setClusterCounts] = useState<Record<string, number>>({});
 
   const fetchData = () => {
     setLoading(true);
@@ -58,7 +44,7 @@ export default function ClusterView() {
         return r.json();
       })
       .then(d => {
-        setClusterData(d.clusters || {});
+        setClusterCounts(d.clusters || {});
         setLoading(false);
       })
       .catch(err => {
@@ -71,11 +57,10 @@ export default function ClusterView() {
     fetchData();
   }, []);
 
-  const clusters = clusterData || {};
-  const clusterKeys = Object.keys(clusters).length > 0
-    ? Object.keys(clusters)
+  const clusterKeys = Object.keys(clusterCounts).length > 0
+    ? Object.keys(clusterCounts)
     : ['deep_readers', 'broad_explorers', 'exam_driven', 'dormant'];
-  const totalStudents = clusterKeys.reduce((sum, k) => sum + (clusters[k]?.count || 0), 0);
+  const totalStudents = clusterKeys.reduce((sum, k) => sum + (clusterCounts[k] || 0), 0);
 
   useEffect(() => {
     if (!barRef.current || loading || totalStudents === 0) return;
@@ -99,7 +84,7 @@ export default function ClusterView() {
       },
       yAxis: {
         type: 'category',
-        data: clusterKeys.map((k) => CLUSTER_LABELS[k] || k),
+        data: clusterKeys.map((k) => (CLUSTER_META[k]?.name || k)),
         axisLabel: { color: '#6b7280', fontSize: 12, fontWeight: 500 },
         axisLine: { lineStyle: { color: '#e5e7eb' } },
       },
@@ -107,9 +92,9 @@ export default function ClusterView() {
         {
           type: 'bar',
           data: clusterKeys.map((k) => ({
-            value: clusters[k]?.count || 0,
+            value: clusterCounts[k] || 0,
             itemStyle: {
-              color: CLUSTER_COLORS[k] || '#3b82f6',
+              color: CLUSTER_META[k]?.color || '#3b82f6',
               borderRadius: [0, 6, 6, 0],
             },
           })),
@@ -131,7 +116,7 @@ export default function ClusterView() {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, [loading, clusterData]);
+  }, [loading, clusterCounts]);
 
   return (
     <StateWrapper
@@ -149,23 +134,24 @@ export default function ClusterView() {
         {/* Cluster cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {clusterKeys.map((key) => {
-            const cluster = clusters[key] || { count: 0, desc: '' };
-            const pct = totalStudents > 0 ? ((cluster.count / totalStudents) * 100).toFixed(0) : '0';
+            const meta = CLUSTER_META[key] || { name: key, desc: '', icon: '📊', color: '#6b7280' };
+            const count = clusterCounts[key] || 0;
+            const pct = totalStudents > 0 ? ((count / totalStudents) * 100).toFixed(0) : '0';
             return (
               <div
                 key={key}
                 className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-lg transition-shadow"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-2xl">{CLUSTER_ICONS[key] || '📖'}</span>
+                  <span className="text-2xl">{meta.icon}</span>
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">{CLUSTER_LABELS[key] || key}</h3>
+                    <h3 className="text-sm font-semibold text-gray-900">{meta.name}</h3>
                     <p className="text-xs text-gray-400">{pct}% 占比</p>
                   </div>
                 </div>
                 <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-3xl font-bold" style={{ color: CLUSTER_COLORS[key] || '#3b82f6' }}>
-                    {cluster.count}
+                  <span className="text-3xl font-bold" style={{ color: meta.color }}>
+                    {count}
                   </span>
                   <span className="text-sm text-gray-400">人</span>
                 </div>
@@ -174,11 +160,11 @@ export default function ClusterView() {
                     className="h-2 rounded-full transition-all duration-500"
                     style={{
                       width: `${pct}%`,
-                      backgroundColor: CLUSTER_COLORS[key] || '#3b82f6',
+                      backgroundColor: meta.color,
                     }}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-3 leading-relaxed">{cluster.desc}</p>
+                <p className="text-xs text-gray-500 mt-3 leading-relaxed">{meta.desc}</p>
               </div>
             );
           })}

@@ -21,7 +21,7 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const user = useAuthStore((s) => s.user);
   const role = user?.role;
-  const isStudent = role === 'student' || role === 'admin';
+  const isStudent = role === 'student';
   const isTeacher = role === 'teacher' || role === 'admin';
   const isAdmin = role === 'admin';
 
