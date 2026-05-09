@@ -1,0 +1,110 @@
+import { useState } from 'react';
+import { NavLink, Outlet } from 'react-router-dom';
+
+const navItems = [
+  { path: '/', label: '首页推荐', icon: '🏠' },
+  { path: '/profile', label: '我的画像', icon: '👤' },
+  { path: '/history', label: '推荐历史', icon: '📋' },
+  { path: '/path-planner', label: '学习路径', icon: '🗺️' },
+  { path: '/search', label: '语义搜索', icon: '🔍' },
+];
+
+export default function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile top nav */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-between shadow-sm">
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
+          aria-label="Toggle menu"
+        >
+          <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <span className="font-semibold text-gray-800 text-lg">智慧图书馆</span>
+        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+          张
+        </div>
+      </div>
+
+      {/* Sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-20 bg-black/30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed top-0 left-0 z-30 h-full w-64 bg-white border-r border-gray-200 shadow-lg transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="h-14 flex items-center px-6 border-b border-gray-100">
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              智慧图书馆
+            </span>
+          </div>
+
+          {/* Nav items */}
+          <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === '/'}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`
+                }
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* User info */}
+          <div className="border-t border-gray-100 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                张
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-800">张三</div>
+                <div className="text-xs text-gray-400">S20220001</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="lg:ml-64 pt-14 lg:pt-0 min-h-screen">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Outlet />
+        </div>
+      </main>
+
+      {/* Chat button */}
+      <button
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-all hover:shadow-xl active:scale-95"
+        onClick={() => alert('对话助手功能即将上线')}
+      >
+        <span>💬</span>
+        <span className="text-sm font-medium">对话助手</span>
+      </button>
+    </div>
+  );
+}
