@@ -8,6 +8,7 @@ import SemanticSearch from './pages/student/SemanticSearch';
 import InterestOverview from './pages/teacher/InterestOverview';
 import ClusterView from './pages/teacher/ClusterView';
 import InsightReport from './pages/teacher/InsightReport';
+import ResourceDetail from './pages/student/ResourceDetail';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/teacher/overview" element={<InterestOverview />} />
           <Route path="/teacher/clusters" element={<ClusterView />} />
           <Route path="/teacher/insight" element={<InsightReport />} />
+          <Route path="/resource/:type/:id" element={<ResourceDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>

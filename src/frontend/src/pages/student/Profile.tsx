@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import * as echarts from 'echarts';
+import { useState, useEffect } from 'react';
 import { getProfile } from '../../api/mock';
 import type { StudentProfile } from '../../types';
+import RadarChart from '../../components/RadarChart';
+import WordCloud from '../../components/WordCloud';
+import LineChart from '../../components/LineChart';
 
 export default function Profile() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const radarRef = useRef<HTMLDivElement>(null);
-  const lineRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getProfile().then((p) => {
@@ -16,70 +16,14 @@ export default function Profile() {
     });
   }, []);
 
-  // Radar chart
-  useEffect(() => {
-    if (!profile || !radarRef.current) return;
-    const chart = echarts.init(radarRef.current);
-    const domains = Object.entries(profile.domain_weights);
-    chart.setOption({
-      radar: {
-        indicator: domains.map(([name]) => ({ name, max: 1 })),
-        shape: 'circle',
-        splitArea: { areaStyle: { color: ['rgba(59,130,246,0.02)', 'rgba(59,130,246,0.05)'] } },
-        axisLine: { lineStyle: { color: 'rgba(59,130,246,0.2)' } },
-      },
-      series: [{
-        type: 'radar',
-        data: [{ value: domains.map(([, v]) => v), name: '学科权重' }],
-        symbol: 'circle',
-        symbolSize: 6,
-        itemStyle: { color: '#3b82f6' },
-        lineStyle: { color: '#3b82f6', width: 2 },
-        areaStyle: { color: 'rgba(59,130,246,0.15)' },
-      }],
-    });
-    const handleResize = () => chart.resize();
-    window.addEventListener('resize', handleResize);
-    return () => { window.removeEventListener('resize', handleResize); chart.dispose(); };
-  }, [profile]);
-
-  // Line chart (simulated reading rhythm)
-  useEffect(() => {
-    if (!lineRef.current) return;
-    const chart = echarts.init(lineRef.current);
-    chart.setOption({
-      xAxis: {
-        type: 'category',
-        data: ['大一上', '大一下', '大二上', '大二下', '大三上', '大三下'],
-        axisLabel: { color: '#9ca3af', fontSize: 12 },
-        axisLine: { lineStyle: { color: '#e5e7eb' } },
-      },
-      yAxis: {
-        type: 'value',
-        name: '借阅册数',
-        nameTextStyle: { color: '#9ca3af', fontSize: 12 },
-        axisLabel: { color: '#9ca3af' },
-        splitLine: { lineStyle: { color: '#f3f4f6' } },
-      },
-      series: [
-        {
-          name: '借阅量',
-          type: 'line',
-          data: [3, 5, 7, 9, 12, 8],
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 8,
-          lineStyle: { color: '#8b5cf6', width: 3 },
-          itemStyle: { color: '#8b5cf6' },
-          areaStyle: { color: 'rgba(139,92,246,0.1)' },
-        },
-      ],
-      grid: { top: 20, right: 20, bottom: 30, left: 50 },
-    });
-    const handleResize = () => chart.resize();
-    window.addEventListener('resize', handleResize);
-    return () => { window.removeEventListener('resize', handleResize); chart.dispose(); };
-  }, []);
+  const lineData = [
+    { semester: '大一上', count: 3 },
+    { semester: '大一下', count: 5 },
+    { semester: '大二上', count: 7 },
+    { semester: '大二下', count: 9 },
+    { semester: '大三上', count: 12 },
+    { semester: '大三下', count: 8 },
+  ];
 
   if (loading) {
     return (
@@ -129,36 +73,20 @@ export default function Profile() {
         {/* Radar chart */}
         <div className="bg-white rounded-xl border border-gray-100 p-6">
           <h3 className="text-base font-semibold text-gray-900 mb-4">学科领域权重</h3>
-          <div ref={radarRef} className="w-full h-72" />
+          <RadarChart data={Object.entries(profile.domain_weights).map(([name, value]) => ({ name, value }))} />
         </div>
 
         {/* Word cloud (styled tag cloud) */}
         <div className="bg-white rounded-xl border border-gray-100 p-6">
           <h3 className="text-base font-semibold text-gray-900 mb-4">兴趣关键词</h3>
-          <div className="flex flex-wrap items-center gap-3 h-72 content-center">
-            {profile.interest_keywords.map(([word, weight]) => (
-              <span
-                key={word}
-                className="inline-block rounded-full transition-all hover:scale-110 hover:shadow-md cursor-default"
-                style={{
-                  fontSize: `${0.75 + weight * 4}rem`,
-                  fontWeight: weight > 0.08 ? 700 : 500,
-                  padding: `${0.25 + weight * 1}rem ${0.5 + weight * 2}rem`,
-                  backgroundColor: `rgba(59,130,246,${0.05 + weight * 0.6})`,
-                  color: `rgba(30,64,175,${0.6 + weight * 0.4})`,
-                }}
-              >
-                {word}
-              </span>
-            ))}
-          </div>
+          <WordCloud words={profile.interest_keywords} />
         </div>
       </div>
 
       {/* Line chart */}
       <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
         <h3 className="text-base font-semibold text-gray-900 mb-4">阅读节奏</h3>
-        <div ref={lineRef} className="w-full h-64" />
+        <LineChart data={lineData} />
       </div>
 
       {/* Cross-interest analysis card */}
