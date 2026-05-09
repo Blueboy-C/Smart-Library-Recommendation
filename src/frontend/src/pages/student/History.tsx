@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FeedbackRecord } from '../../types';
-import { getHistory } from '../../api/mock';
+import { getHistory } from '../../api/student';
 
 type FilterType = 'all' | 'book' | 'course' | 'activity';
 
@@ -24,7 +24,19 @@ export default function History() {
 
   useEffect(() => {
     getHistory().then((data) => {
-      setRecords(data);
+      // Transform API response: map current_recommendations -> FeedbackRecord[]
+      const mapped: FeedbackRecord[] = (data.current_recommendations || []).map(
+        (item) => ({
+          item_id: item.item_id,
+          title: item.title,
+          item_type: item.item_type as 'book' | 'course' | 'activity',
+          score: item.score,
+          reason: item.reason,
+          recommended_at: new Date().toISOString(),
+          feedback: undefined,
+        }),
+      );
+      setRecords(mapped);
       setLoading(false);
     });
   }, []);

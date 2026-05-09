@@ -20,7 +20,7 @@ def get_heatmap(dept: str = "", grade: str = ""):
     try:
         query = db.query(Student)
         if dept:
-            query = query.filter(Student.major.contains(dept))
+            query = query.filter(Student.major.like(f'%{dept}%'))
         if grade:
             query = query.filter(Student.grade == grade)
         students = query.all()
@@ -49,7 +49,7 @@ def get_clusters(dept: str = "", grade: str = ""):
     try:
         query = db.query(Student)
         if dept:
-            query = query.filter(Student.major.contains(dept))
+            query = query.filter(Student.major.like(f'%{dept}%'))
         if grade:
             query = query.filter(Student.grade == grade)
         students = query.all()

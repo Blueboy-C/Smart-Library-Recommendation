@@ -1,16 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
+import { searchBooks } from '../../api/student';
 
-const MOCK_RESULTS = [
-  { id: '1', title: '机器学习', type: '图书', desc: 'Tom Mitchell 经典教材，涵盖决策树、神经网络等核心内容', score: 0.95 },
-  { id: '2', title: '机器学习实战', type: '图书', desc: '基于Python的机器学习实践指南', score: 0.88 },
-  { id: '3', title: '自然语言处理', type: '课程', desc: '深入讲解NLP中的机器学习方法', score: 0.82 },
-  { id: '4', title: '统计学习方法', type: '图书', desc: '李航著，系统介绍统计学习核心方法', score: 0.76 },
-];
+interface SearchResult {
+  item_id: string;
+  title: string;
+  author: string;
+  score: number;
+  available: boolean;
+  clc_number: string;
+}
 
 export default function SemanticSearch() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<typeof MOCK_RESULTS>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -20,11 +24,18 @@ export default function SemanticSearch() {
       setShowResults(false);
       return;
     }
-    timerRef.current = setTimeout(() => {
-      setResults(
-        MOCK_RESULTS.filter((r) => r.title.includes(query) || r.desc.includes(query))
-      );
-      setShowResults(true);
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const data = await searchBooks(query);
+        setResults(data);
+        setShowResults(true);
+      } catch {
+        setResults([]);
+        setShowResults(true);
+      } finally {
+        setLoading(false);
+      }
     }, 300);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [query]);
@@ -55,14 +66,18 @@ export default function SemanticSearch() {
       {/* Results */}
       {showResults && (
         <div className="mt-4 space-y-3">
-          {results.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full" />
+            </div>
+          ) : results.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
               <p className="text-gray-400">未找到相关结果</p>
             </div>
           ) : (
             results.map((r) => (
               <div
-                key={r.id}
+                key={r.item_id}
                 className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
               >
                 <div className="flex items-start justify-between">
@@ -70,10 +85,18 @@ export default function SemanticSearch() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-semibold text-gray-900">{r.title}</span>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
-                        {r.type}
+                        图书
                       </span>
+                      {!r.available && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-700">
+                          已借出
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-500">{r.desc}</p>
+                    <p className="text-sm text-gray-500">{r.author}</p>
+                    {r.clc_number && (
+                      <p className="text-xs text-gray-400 mt-1">分类号: {r.clc_number}</p>
+                    )}
                   </div>
                   <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 ml-4">
                     <span className="text-xs font-bold text-blue-600">{Math.round(r.score * 100)}%</span>

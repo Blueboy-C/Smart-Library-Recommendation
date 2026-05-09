@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { RecommendItem } from '../../types';
-import { getRecommendations } from '../../api/mock';
+import { getRecommendations } from '../../api/student';
 import RecommendCard from '../../components/RecommendCard';
 
 type TabType = 'book' | 'course' | 'activity';

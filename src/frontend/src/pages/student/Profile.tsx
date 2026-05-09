@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getProfile } from '../../api/mock';
+import { getProfile } from '../../api/student';
 import type { StudentProfile } from '../../types';
 import RadarChart from '../../components/RadarChart';
 import WordCloud from '../../components/WordCloud';
