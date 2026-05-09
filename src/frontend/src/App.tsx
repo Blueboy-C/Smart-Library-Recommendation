@@ -12,6 +12,7 @@ import InterestOverview from './pages/teacher/InterestOverview';
 import ClusterView from './pages/teacher/ClusterView';
 import InsightReport from './pages/teacher/InsightReport';
 import ResourceDetail from './pages/student/ResourceDetail';
+import AdminDashboard from './pages/admin/Dashboard';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/teacher/clusters" element={<ClusterView />} />
           <Route path="/teacher/insight" element={<InsightReport />} />
           <Route path="/resource/:type/:id" element={<ResourceDetail />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Route>
       </Routes>
     </BrowserRouter>

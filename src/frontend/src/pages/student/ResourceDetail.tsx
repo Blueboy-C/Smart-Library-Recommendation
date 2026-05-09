@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 interface BookData {
@@ -21,6 +21,7 @@ export default function ResourceDetail() {
   const [book, setBook] = useState<BookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [related, setRelated] = useState<any[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -40,6 +41,15 @@ export default function ResourceDetail() {
         setError(err.message);
       })
       .finally(() => setLoading(false));
+  }, [id]);
+
+  // Fetch related books
+  useEffect(() => {
+    if (!id) return;
+    fetch(`http://localhost:8000/api/books/${id}/related`)
+      .then(r => r.json())
+      .then(d => setRelated(d.related || []))
+      .catch(() => {});
   }, [id]);
 
   // Track stay duration
@@ -161,6 +171,22 @@ export default function ResourceDetail() {
             </button>
           )}
         </div>
+
+        {/* Related books */}
+        {related.length > 0 && (
+          <div className="mt-8 pt-6 border-t">
+            <h3 className="font-semibold text-gray-700 mb-3">📚 借了这本书的人也借了</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {related.map((r: any) => (
+                <Link key={r.book_id} to={`/resource/book/${r.book_id}`}
+                  className="p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors">
+                  <p className="font-medium text-sm">{r.title}</p>
+                  <p className="text-xs text-gray-500">{r.author} · {r.borrow_count}人借阅</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

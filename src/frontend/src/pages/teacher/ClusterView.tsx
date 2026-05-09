@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import * as echarts from 'echarts';
+import ReactECharts from 'echarts-for-react';
 import StateWrapper from '../../components/StateWrapper';
 
 const MOCK_CLUSTERS: Record<string, { count: number; desc: string; icon: string }> = {
@@ -23,6 +24,20 @@ const CLUSTER_COLORS: Record<string, string> = {
   broad_explorers: '#8b5cf6',
   exam_driven: '#f59e0b',
   dormant: '#9ca3af',
+};
+
+const trendOption = {
+  title: { text: '分群趋势变化', left: 'center', textStyle: { fontSize: 14 } },
+  tooltip: { trigger: 'axis' as const },
+  legend: { data: ['深度阅读型', '跨领域探索型', '考试驱动型', '休眠型'], bottom: 0 },
+  xAxis: { type: 'category' as const, data: ['2024秋', '2025春', '2025秋', '2026春'] },
+  yAxis: { type: 'value' as const },
+  series: [
+    { name: '深度阅读型', type: 'line' as const, data: [8, 10, 12, 15], smooth: true },
+    { name: '跨领域探索型', type: 'line' as const, data: [20, 25, 30, 35], smooth: true },
+    { name: '考试驱动型', type: 'line' as const, data: [35, 32, 28, 25], smooth: true },
+    { name: '休眠型', type: 'line' as const, data: [37, 33, 30, 25], smooth: true },
+  ],
 };
 
 export default function ClusterView() {
@@ -152,9 +167,15 @@ export default function ClusterView() {
         </div>
 
         {/* Bar chart */}
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
           <h3 className="text-base font-semibold text-gray-900 mb-4">分群规模对比</h3>
           <div ref={barRef} className="w-full h-72" />
+        </div>
+
+        {/* Trend chart */}
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-4">分群趋势变化</h3>
+          <ReactECharts option={trendOption} style={{ height: 300 }} />
         </div>
       </div>
     </StateWrapper>

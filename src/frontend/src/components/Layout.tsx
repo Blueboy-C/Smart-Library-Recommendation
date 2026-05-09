@@ -108,6 +108,34 @@ export default function Layout() {
                 <span>{item.label}</span>
               </NavLink>
             ))}
+
+            {/* Admin section (conditional) */}
+            {(() => {
+              const user = useAuthStore.getState().user;
+              if (user?.role !== 'admin') return null;
+              return (
+                <>
+                  <div className="border-t border-gray-100 my-3" />
+                  <div className="px-4 py-1.5">
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">系统管理</span>
+                  </div>
+                  <NavLink
+                    to="/admin"
+                    onClick={() => setSidebarOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-red-50 text-red-700'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    <span className="text-lg">⚙️</span>
+                    <span>系统管理</span>
+                  </NavLink>
+                </>
+              );
+            })()}
           </nav>
 
           {/* User info */}

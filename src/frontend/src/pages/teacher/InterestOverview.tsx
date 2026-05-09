@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
+import ReactECharts from 'echarts-for-react';
 import HeatMap from '../../components/HeatMap';
 import ScatterChart from '../../components/ScatterChart';
 import StateWrapper from '../../components/StateWrapper';
@@ -22,6 +23,24 @@ const MOCK_GAP = [
   { domain: '哲学/心理学', demand: 45, supply: 30 },
   { domain: '文化/教育/体育', demand: 34, supply: 62 },
 ];
+
+const deviationData = {
+  domains: ['自动化/计算机', '数学/物理', '电子/通信', '文学', '哲学/心理'],
+  inclass: [120, 85, 70, 30, 25],
+  outclass: [145, 60, 55, 45, 35],
+};
+
+const deviationOption = {
+  title: { text: '课内外偏离度', left: 'center', textStyle: { fontSize: 14 } },
+  tooltip: { trigger: 'axis' as const },
+  legend: { data: ['课内选课', '课外借阅'], bottom: 0 },
+  xAxis: { type: 'category' as const, data: deviationData.domains },
+  yAxis: { type: 'value' as const },
+  series: [
+    { name: '课内选课', type: 'bar' as const, data: deviationData.inclass, itemStyle: { color: '#3b82f6' } },
+    { name: '课外借阅', type: 'bar' as const, data: deviationData.outclass, itemStyle: { color: '#f59e0b' } },
+  ],
+};
 
 const GRADES = ['全部', '2022级', '2023级', '2024级'];
 const DEPARTMENTS = ['全部', '计算机科学与技术', '软件工程', '电子信息工程', '人工智能', '数学与应用数学'];
@@ -166,12 +185,18 @@ export default function InterestOverview() {
         </div>
 
         {/* Scatter chart */}
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
           <h3 className="text-base font-semibold text-gray-900 mb-4">资源供需缺口分析</h3>
           <p className="text-xs text-gray-400 mb-4">红色虚线为供给=需求基准线，点越靠左上方表示供给相对充足，越靠右下方表示资源紧缺</p>
           <div className="h-80">
             <ScatterChart data={MOCK_GAP} />
           </div>
+        </div>
+
+        {/* Deviation chart */}
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-4">课内外偏离度</h3>
+          <ReactECharts option={deviationOption} style={{ height: 300 }} />
         </div>
       </div>
     </StateWrapper>

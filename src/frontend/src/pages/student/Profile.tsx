@@ -10,6 +10,8 @@ export default function Profile() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [crossDomain, setCrossDomain] = useState<string | null>(null);
+  const [loadingCross, setLoadingCross] = useState(false);
 
   const fetchData = () => {
     setLoading(true);
@@ -29,6 +31,29 @@ export default function Profile() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Fetch cross-domain suggestions
+  useEffect(() => {
+    if (!profile || loading) return;
+    setLoadingCross(true);
+    const keywords = profile.interest_keywords.slice(0, 5).map(([k]) => k).join('、');
+    fetch(`http://localhost:8000/api/dialogue?message=根据学生的兴趣关键词：${keywords}，知识领域分布：${JSON.stringify(profile.domain_weights).slice(0,100)}，请用一句话（不超过50字）建议一个意想不到但可能有兴趣的跨领域阅读方向。`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(async (res) => {
+        const reader = res.body?.getReader();
+        if (!reader) return;
+        let text = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          text += new TextDecoder().decode(value).replace(/^data: /gm, '').replace(/\[DONE\]/g, '');
+        }
+        setCrossDomain(text.trim() || '跨界联想暂时不可用');
+      })
+      .catch(() => setCrossDomain('跨界联想暂时不可用'))
+      .finally(() => setLoadingCross(false));
+  }, [profile?.student_id]);
 
   const lineData = [
     { semester: '大一上', count: 3 },
@@ -102,7 +127,7 @@ export default function Profile() {
           </div>
 
           {/* Cross-interest analysis card */}
-          <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
             <div className="flex items-center gap-3 mb-3">
               <span className="text-2xl">&#x1F504;</span>
               <h3 className="text-base font-semibold text-gray-900">跨学科兴趣分析</h3>
@@ -119,6 +144,16 @@ export default function Profile() {
               </div>
             ) : (
               <p className="text-sm text-gray-400">暂无分析数据</p>
+            )}
+          </div>
+
+          {/* Cross-domain LLM discovery */}
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6">
+            <h3 className="text-sm font-medium text-purple-700 mb-2">🔮 跨界兴趣发现</h3>
+            {loadingCross ? (
+              <p className="text-purple-400 text-sm">正在分析你的兴趣图谱...</p>
+            ) : (
+              <p className="text-purple-800 text-sm leading-relaxed">{crossDomain || '点击生成跨领域阅读建议'}</p>
             )}
           </div>
         </div>
