@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+env/
+
+# Node
+node_modules/
+.next/
+out/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Data
+data/raw/
+data/processed/
+*.db
+*.sqlite3
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+logs/
+*.log
