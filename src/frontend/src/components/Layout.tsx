@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import ChatWidget from './ChatWidget';
 
-const navItems = [
+const studentNavItems = [
   { path: '/', label: '首页推荐', icon: '🏠' },
   { path: '/profile', label: '我的画像', icon: '👤' },
   { path: '/history', label: '推荐历史', icon: '📋' },
   { path: '/path-planner', label: '学习路径', icon: '🗺️' },
   { path: '/search', label: '语义搜索', icon: '🔍' },
+];
+
+const teacherNavItems = [
+  { path: '/teacher/overview', label: '兴趣总览', icon: '📊' },
+  { path: '/teacher/clusters', label: '学生分群', icon: '👥' },
+  { path: '/teacher/insight', label: '洞察报告', icon: '📝' },
 ];
 
 export default function Layout() {
@@ -55,7 +62,11 @@ export default function Layout() {
 
           {/* Nav items */}
           <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
+            {/* Student section */}
+            <div className="px-4 py-1.5">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">学生端</span>
+            </div>
+            {studentNavItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -65,6 +76,31 @@ export default function Layout() {
                   `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`
+                }
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+
+            {/* Divider */}
+            <div className="border-t border-gray-100 my-3" />
+
+            {/* Teacher section */}
+            <div className="px-4 py-1.5">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">教师看板</span>
+            </div>
+            {teacherNavItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-purple-50 text-purple-700'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`
                 }
@@ -97,14 +133,8 @@ export default function Layout() {
         </div>
       </main>
 
-      {/* Chat button */}
-      <button
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-all hover:shadow-xl active:scale-95"
-        onClick={() => alert('对话助手功能即将上线')}
-      >
-        <span>💬</span>
-        <span className="text-sm font-medium">对话助手</span>
-      </button>
+      {/* Chat Widget */}
+      <ChatWidget />
     </div>
   );
 }

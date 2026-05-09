@@ -5,6 +5,9 @@ import Profile from './pages/student/Profile';
 import History from './pages/student/History';
 import PathPlanner from './pages/student/PathPlanner';
 import SemanticSearch from './pages/student/SemanticSearch';
+import InterestOverview from './pages/teacher/InterestOverview';
+import ClusterView from './pages/teacher/ClusterView';
+import InsightReport from './pages/teacher/InsightReport';
 
 export default function App() {
   return (
@@ -16,6 +19,9 @@ export default function App() {
           <Route path="/history" element={<History />} />
           <Route path="/path-planner" element={<PathPlanner />} />
           <Route path="/search" element={<SemanticSearch />} />
+          <Route path="/teacher/overview" element={<InterestOverview />} />
+          <Route path="/teacher/clusters" element={<ClusterView />} />
+          <Route path="/teacher/insight" element={<InsightReport />} />
         </Route>
       </Routes>
     </BrowserRouter>
