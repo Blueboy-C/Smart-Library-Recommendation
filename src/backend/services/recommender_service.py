@@ -1,8 +1,7 @@
 """推荐编排服务"""
-import random
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
-from ..models import Student as StudentORM, BorrowRecord, Book
+from ..models import Student as StudentORM, BorrowRecord, Book, BehaviorLog
 from .profile_service import build_profile, _load_books
 from recommender.content_based import BasicContentRecommender
 from recommender.collaborative import UserBasedCF
@@ -16,6 +15,22 @@ def get_recommendations(student_id: str, top_k: int = 20, item_type: str = "book
         student = db.query(StudentORM).filter(StudentORM.student_id == student_id).first()
         if not student:
             return []
+
+        # Gap 2: Cold start - check data completeness for tiered strategy
+        borrow_count = db.query(BorrowRecord).filter(BorrowRecord.student_id == student_id).count()
+        if borrow_count == 0:
+            books = db.query(Book).all()
+            major_keywords = student.major if student else ""
+            results = []
+            for book in books:
+                if major_keywords and any(kw in book.title + book.summary for kw in major_keywords.split()):
+                    continue
+                results.append({
+                    "item_id": book.book_id, "item_type": "book", "title": book.title,
+                    "reason": f"新上架热门图书，{student.grade}同学都在读" if student else "热门图书推荐",
+                    "score": 0.5, "available": book.available_copies > 0,
+                })
+            return results[:top_k]
 
         profile = build_profile(student_id)
         if not profile:
@@ -49,17 +64,15 @@ def get_recommendations(student_id: str, top_k: int = 20, item_type: str = "book
 
         # Hybrid merge
         hybrid = HybridRecommender()
+        # Gap 1: Load behavior history for this student
+        behavior_logs = db.query(BehaviorLog).filter(
+            BehaviorLog.student_id == student_id,
+            BehaviorLog.action_type.in_(["bookmark", "stay", "revisit", "bounce", "useful", "skip"])
+        ).all()
+        for log in behavior_logs:
+            hybrid.record_behavior(student_id, log.item_id, log.action_type,
+                                  stay_seconds=log.stay_seconds, scroll_percent=log.scroll_percent)
         merged = hybrid.merge(cf_results, ct_results, student_id=student_id, top_k=top_k)
-
-        # Add random noise to break ties and create score diversity
-        random.seed(42)
-        diverse_merged = []
-        for item_id, score, source in merged:
-            variance = random.uniform(-0.15, 0.15)
-            diverse_score = round(min(max(score + variance, 0.1), 0.99), 3)
-            diverse_merged.append((item_id, diverse_score, source))
-        diverse_merged.sort(key=lambda x: x[1], reverse=True)
-        merged = diverse_merged
 
         result = []
         book_map = {b.book_id: b for b in books}

@@ -1,6 +1,13 @@
 """混合推荐策略：CF + Content + 行为反馈调权"""
-import random
+import hashlib
 from collections import defaultdict
+
+
+def _item_variance(item_id: str, student_id: str = "") -> float:
+    """Deterministic hash-based per-item variance to replace random noise.
+    Produces stable scores across refreshes for the same student-item pair."""
+    h = hashlib.md5(f"{item_id}:{student_id}".encode()).hexdigest()
+    return (int(h[:4], 16) / 65535 - 0.5) * 0.1  # -0.05 to +0.05
 
 
 class HybridRecommender:
@@ -16,7 +23,8 @@ class HybridRecommender:
 
     def _compute_behavior_bonus(self, student_id: str) -> float:
         weights = {"bookmark": 20, "stay_gt_60": 10, "revisit": 8,
-                   "stay_20_60": 5, "stay_5_20": 2, "stay_lt_5": 0, "bounce": -5}
+                   "stay_20_60": 5, "stay_5_20": 2, "stay_lt_5": 0, "bounce": -5,
+                   "useful": 10, "skip": -8}
         bonus = 0
         for item_id, actions in self.behavior_history.get(student_id, {}).items():
             for a in actions:
@@ -33,6 +41,10 @@ class HybridRecommender:
                     bonus += weights["stay_5_20"]
                 elif act == "bounce":
                     bonus += weights["bounce"]
+                elif act == "useful":
+                    bonus += weights["useful"]
+                elif act == "skip":
+                    bonus += weights["skip"]
         return bonus / 100.0
 
     def merge(self, cf_results: list[tuple[str, float]],
@@ -54,13 +66,12 @@ class HybridRecommender:
         behavior_bonus = self._compute_behavior_bonus(student_id) if student_id else 0
         # Spread scores to create diversity: stretch from [0,1] to [0.1,0.9]
         final = []
-        random.seed(42)
         for iid, sc in scores.items():
             raw = 0.7 * sc + 0.3 * behavior_bonus
             # Stretch distribution to avoid score clustering
             spread = 0.2 + 0.6 * raw
-            # Add small random variance for diversity
-            variance = random.uniform(-0.05, 0.05)
+            # Add deterministic hash-based variance (stable per student-item pair)
+            variance = _item_variance(iid, student_id)
             final_score = round(min(max(spread + variance, 0.1), 0.99), 3)
             final.append((iid, final_score, sources[iid]))
         final.sort(key=lambda x: x[1], reverse=True)
