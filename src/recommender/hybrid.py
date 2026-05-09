@@ -1,9 +1,10 @@
 """混合推荐策略：CF + Content + 行为反馈调权"""
+import random
 from collections import defaultdict
 
 
 class HybridRecommender:
-    def __init__(self, alpha: float = 0.6):
+    def __init__(self, alpha: float = 0.5):
         self.alpha = alpha  # CF权重
         self.behavior_history: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
 
@@ -51,7 +52,16 @@ class HybridRecommender:
             if item_id not in sources:
                 sources[item_id] = "content"
         behavior_bonus = self._compute_behavior_bonus(student_id) if student_id else 0
-        final = [(iid, min(0.7 * sc + 0.3 * behavior_bonus, 1.0), sources[iid])
-                 for iid, sc in scores.items()]
+        # Spread scores to create diversity: stretch from [0,1] to [0.1,0.9]
+        final = []
+        random.seed(42)
+        for iid, sc in scores.items():
+            raw = 0.7 * sc + 0.3 * behavior_bonus
+            # Stretch distribution to avoid score clustering
+            spread = 0.2 + 0.6 * raw
+            # Add small random variance for diversity
+            variance = random.uniform(-0.05, 0.05)
+            final_score = round(min(max(spread + variance, 0.1), 0.99), 3)
+            final.append((iid, final_score, sources[iid]))
         final.sort(key=lambda x: x[1], reverse=True)
         return final[:top_k]

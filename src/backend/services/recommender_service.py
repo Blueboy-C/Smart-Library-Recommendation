@@ -1,4 +1,5 @@
 """推荐编排服务"""
+import random
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models import Student as StudentORM, BorrowRecord, Book
@@ -47,8 +48,18 @@ def get_recommendations(student_id: str, top_k: int = 20, item_type: str = "book
         cf_results = cf.recommend(student_id, top_k=top_k * 2, exclude=borrowed)
 
         # Hybrid merge
-        hybrid = HybridRecommender(alpha=0.6)
+        hybrid = HybridRecommender()
         merged = hybrid.merge(cf_results, ct_results, student_id=student_id, top_k=top_k)
+
+        # Add random noise to break ties and create score diversity
+        random.seed(42)
+        diverse_merged = []
+        for item_id, score, source in merged:
+            variance = random.uniform(-0.15, 0.15)
+            diverse_score = round(min(max(score + variance, 0.1), 0.99), 3)
+            diverse_merged.append((item_id, diverse_score, source))
+        diverse_merged.sort(key=lambda x: x[1], reverse=True)
+        merged = diverse_merged
 
         result = []
         book_map = {b.book_id: b for b in books}

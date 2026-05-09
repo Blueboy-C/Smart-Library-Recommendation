@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 import HeatMap from '../../components/HeatMap';
 import ScatterChart from '../../components/ScatterChart';
+import StateWrapper from '../../components/StateWrapper';
 
 const MOCK_HEATMAP = [
   { domain: '自动化/计算机', count: 145, grade: '2022级', major: '计算机科学与技术' },
@@ -28,7 +29,17 @@ const DEPARTMENTS = ['全部', '计算机科学与技术', '软件工程', '电�
 export default function InterestOverview() {
   const [grade, setGrade] = useState('全部');
   const [department, setDepartment] = useState('全部');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Simulate data fetch
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredHeat = MOCK_HEATMAP.filter(
     (d) => (grade === '全部' || d.grade === grade) && (department === '全部' || d.major === department)
@@ -45,7 +56,7 @@ export default function InterestOverview() {
 
   // Bar chart
   useEffect(() => {
-    if (!barRef.current) return;
+    if (!barRef.current || loading) return;
     const chart = echarts.init(barRef.current);
     chart.setOption({
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -91,67 +102,78 @@ export default function InterestOverview() {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, []);
+  }, [loading]);
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">兴趣总览</h1>
-        <p className="text-sm text-gray-500 mt-1">学生阅读兴趣的宏观视图与资源供需分析</p>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-500 font-medium">年级:</label>
-          <select
-            value={grade}
-            onChange={(e) => setGrade(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          >
-            {GRADES.map((g) => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </select>
+    <StateWrapper
+      loading={loading}
+      error={error}
+      empty={false}
+      onRetry={() => {
+        setLoading(true);
+        setError(null);
+        setTimeout(() => setLoading(false), 600);
+      }}
+    >
+      <div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">兴趣总览</h1>
+          <p className="text-sm text-gray-500 mt-1">学生阅读兴趣的宏观视图与资源供需分析</p>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-500 font-medium">院系:</label>
-          <select
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          >
-            {DEPARTMENTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-      </div>
 
-      {/* Heatmap + Top Domains */}
-      <div className="flex flex-col lg:flex-row gap-6 mb-6">
-        <div className="flex-1 lg:w-[60%] bg-white rounded-xl border border-gray-100 p-6">
-          <h3 className="text-base font-semibold text-gray-900 mb-4">学科-年级热力图</h3>
-          <div className="h-80">
-            <HeatMap data={filteredHeat} />
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500 font-medium">年级:</label>
+            <select
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            >
+              {GRADES.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500 font-medium">院系:</label>
+            <select
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            >
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
           </div>
         </div>
-        <div className="flex-1 lg:w-[40%] bg-white rounded-xl border border-gray-100 p-6">
-          <h3 className="text-base font-semibold text-gray-900 mb-4">TOP 10 学科领域</h3>
+
+        {/* Heatmap + Top Domains */}
+        <div className="flex flex-col lg:flex-row gap-6 mb-6">
+          <div className="flex-1 lg:w-[60%] bg-white rounded-xl border border-gray-100 p-6">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">学科-年级热力图</h3>
+            <div className="h-80">
+              <HeatMap data={filteredHeat} />
+            </div>
+          </div>
+          <div className="flex-1 lg:w-[40%] bg-white rounded-xl border border-gray-100 p-6">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">TOP 10 学科领域</h3>
+            <div className="h-80">
+              <div ref={barRef} className="w-full h-full" />
+            </div>
+          </div>
+        </div>
+
+        {/* Scatter chart */}
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-4">资源供需缺口分析</h3>
+          <p className="text-xs text-gray-400 mb-4">红色虚线为供给=需求基准线，点越靠左上方表示供给相对充足，越靠右下方表示资源紧缺</p>
           <div className="h-80">
-            <div ref={barRef} className="w-full h-full" />
+            <ScatterChart data={MOCK_GAP} />
           </div>
         </div>
       </div>
-
-      {/* Scatter chart */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
-        <h3 className="text-base font-semibold text-gray-900 mb-4">资源供需缺口分析</h3>
-        <p className="text-xs text-gray-400 mb-4">红色虚线为供给=需求基准线，点越靠左上方表示供给相对充足，越靠右下方表示资源紧缺</p>
-        <div className="h-80">
-          <ScatterChart data={MOCK_GAP} />
-        </div>
-      </div>
-    </div>
+    </StateWrapper>
   );
 }

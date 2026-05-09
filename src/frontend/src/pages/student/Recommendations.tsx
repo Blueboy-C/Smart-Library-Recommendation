@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { RecommendItem } from '../../types';
 import { getRecommendations } from '../../api/student';
 import RecommendCard from '../../components/RecommendCard';
+import StateWrapper from '../../components/StateWrapper';
 
 type TabType = 'book' | 'course' | 'activity';
 
@@ -15,12 +16,25 @@ export default function Recommendations() {
   const [items, setItems] = useState<RecommendItem[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('book');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = () => {
+    setLoading(true);
+    setError(null);
+    getRecommendations()
+      .then((res) => {
+        setItems(res.items);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch recommendations:', err);
+        setError(err instanceof Error ? err.message : '请求推荐失败');
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
-    getRecommendations().then((res) => {
-      setItems(res.items);
-      setLoading(false);
-    });
+    fetchData();
   }, []);
 
   const filtered = items.filter((item) => item.item_type === activeTab);
@@ -55,21 +69,19 @@ export default function Recommendations() {
       </div>
 
       {/* Content */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-lg">暂无{activeTab === 'book' ? '图书' : activeTab === 'course' ? '课程' : '活动'}推荐</p>
-        </div>
-      ) : (
+      <StateWrapper
+        loading={loading}
+        error={error}
+        empty={!loading && !error && filtered.length === 0}
+        emptyMessage={`暂无${activeTab === 'book' ? '图书' : activeTab === 'course' ? '课程' : '活动'}推荐`}
+        onRetry={fetchData}
+      >
         <div className="grid gap-4">
           {filtered.slice(0, 10).map((item) => (
             <RecommendCard key={item.item_id} item={item} onFeedback={handleFeedback} />
           ))}
         </div>
-      )}
+      </StateWrapper>
     </div>
   );
 }

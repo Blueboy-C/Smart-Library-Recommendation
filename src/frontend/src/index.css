@@ -23,3 +23,13 @@ body {
 .animate-slide-up {
   animation: slide-up 0.25s ease-out;
 }
+
+/* Responsive sidebar helpers */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .sidebar.open { display: block; position: fixed; z-index: 50; top: 0; left: 0; height: 100vh; width: 250px; }
+  .hamburger { display: block; }
+}
+@media (min-width: 769px) {
+  .hamburger { display: none; }
+}
