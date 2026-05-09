@@ -1,8 +1,24 @@
 # 项目Skills参考手册
 
-当前共安装 **40个Skills**，按使用场景分类。
+当前共安装 **536个Skills**，按来源分类。
 
 ---
+
+## Skills来源
+
+| 来源 | 数量 | 核心内容 |
+|------|------|----------|
+| Superpowers | 12 | 开发工作流全流程 |
+| UI UX Pro Max + CKM | 7 | UI设计、品牌、幻灯片 |
+| claude-mem | 11 | 记忆、计划、知识库、探索 |
+| deer-flow (bytedance) | 21 | 学术论文审查、深度研究、图表可视化、代码文档、PPT生成 |
+| agents (wshobson) | 153 | Prompt工程、安全、Python全栈、Agent协调、浏览器自动化 |
+| prompt-optimizer (daymade) | 53 | Prompt优化、QA专家、事实核查、评估方法论 |
+| letta (letta-ai) | 39 | Letta Agent开发、AgentDB记忆/向量搜索/强化学习 |
+| Claude-Flow (ruvnet/ruflo) | 230+ | Swarm集群、神经训练、向量搜索、成本管理、安全扫描、SPARC开发 |
+| 其他（文档/设计） | 10 | PDF、Excel、Word、PPT、前端设计 |
+
+## 本项目关键Skills速查
 
 ## 一、开发工作流（Superpowers套件）
 
