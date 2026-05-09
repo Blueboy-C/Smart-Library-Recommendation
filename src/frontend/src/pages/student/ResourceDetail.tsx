@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { getBookDetail, getRelatedBooks } from '../../api/student';
 
 interface BookData {
   book_id: string;
@@ -27,11 +28,7 @@ export default function ResourceDetail() {
     if (!id) return;
     setLoading(true);
     setError(null);
-    fetch(`http://localhost:8000/api/books/${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+    getBookDetail(id)
       .then((data: BookData) => {
         if (!data || !data.book_id) throw new Error('图书不存在');
         setBook(data);
@@ -46,9 +43,8 @@ export default function ResourceDetail() {
   // Fetch related books
   useEffect(() => {
     if (!id) return;
-    fetch(`http://localhost:8000/api/books/${id}/related`)
-      .then(r => r.json())
-      .then(d => setRelated(d.related || []))
+    getRelatedBooks(id)
+      .then(setRelated)
       .catch(() => {});
   }, [id]);
 

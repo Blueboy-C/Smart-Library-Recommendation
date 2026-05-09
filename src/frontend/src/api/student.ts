@@ -70,6 +70,14 @@ export async function postFeedback(
   );
 }
 
+export async function getFeedbackStatus(studentId: string, itemIds: string[]): Promise<Record<string, string>> {
+  const resp = await axios.get(`${API}/student/${studentId}/feedback-status`, {
+    params: { item_ids: itemIds.join(',') },
+    headers: authHeader(),
+  });
+  return resp.data.feedback || {};
+}
+
 export async function getHistory(
   studentId?: string,
 ): Promise<{
@@ -89,4 +97,17 @@ export async function searchBooks(query: string) {
     headers: authHeader(),
   });
   return resp.data.results || [];
+}
+
+export async function getBookDetail(bookId: string) {
+  const resp = await axios.get(`${API}/books/${bookId}`, { headers: authHeader() });
+  return resp.data;
+}
+
+export async function getRelatedBooks(bookId: string, limit = 5) {
+  const resp = await axios.get(`${API}/books/${bookId}/related`, {
+    params: { limit },
+    headers: authHeader(),
+  });
+  return resp.data.related || [];
 }

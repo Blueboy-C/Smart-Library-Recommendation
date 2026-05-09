@@ -1,54 +1,70 @@
 import { useState } from 'react';
+import StateWrapper from '../../components/StateWrapper';
 
 export default function PathPlanner() {
-  const [input, setInput] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [goal, setGoal] = useState('');
+  const [steps, setSteps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    if (!input.trim()) return;
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    if (!goal.trim()) return;
+    setLoading(true);
+    setError(null);
+    const token = localStorage.getItem('token') || '';
+    const studentId = JSON.parse(localStorage.getItem('user_info') || '{}').student_id || 'S2022001';
+    try {
+      const resp = await fetch(`http://localhost:8000/api/student/${studentId}/path`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ student_id: studentId, goal: goal.trim() }),
+      });
+      const data = await resp.json();
+      setSteps(data.steps || []);
+      setLoading(false);
+    } catch (e) {
+      setError('路径规划失败，请稍后重试');
+      setLoading(false);
+    }
   };
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">学习路径规划</h1>
-        <p className="text-sm text-gray-500 mt-1">描述你的学习目标，我们将为你生成个性化的学习路径</p>
-      </div>
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">学习路径规划</h1>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">你的学习目标</label>
+      <div className="bg-white rounded-xl shadow p-6 mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">学习目标</label>
         <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="例如：我想在三个月内掌握机器学习的核心算法，并能独立完成一个数据挖掘项目..."
-          className="w-full h-32 px-4 py-3 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-300"
-          disabled={submitted}
+          value={goal}
+          onChange={(e) => setGoal(e.target.value)}
+          placeholder="例如：想入门深度学习但数学基础一般"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm min-h-[100px] focus:border-blue-400 outline-none resize-none"
         />
-        <div className="flex justify-end mt-4">
-          <button
-            onClick={handleSubmit}
-            disabled={submitted || !input.trim()}
-            className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              submitted
-                ? 'bg-green-50 text-green-600 border border-green-200 cursor-default'
-                : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed'
-            }`}
-          >
-            {submitted ? '✓ 已提交' : '生成路径'}
-          </button>
-        </div>
+        <button
+          onClick={handleSubmit}
+          disabled={loading || !goal.trim()}
+          className="mt-4 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? '生成中...' : '生成学习路径'}
+        </button>
       </div>
 
-      {submitted && (
-        <div className="mt-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-100 p-8 text-center">
-          <div className="text-4xl mb-3">🚧</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">功能开发中</h3>
-          <p className="text-sm text-gray-500">
-            个性化学习路径规划功能正在紧锣密鼓地开发中，敬请期待！
-          </p>
+      <StateWrapper loading={loading} error={error} empty={!loading && !error && steps.length === 0}
+        emptyMessage="输入你的学习目标，系统会为你规划阶梯式学习路径">
+        <div className="space-y-4">
+          {steps.map((step, i) => (
+            <div key={i} className="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">
+                  {step.order || i + 1}
+                </span>
+                <span className="text-sm text-gray-500">步骤 {step.order || i + 1}</span>
+              </div>
+              <p className="text-gray-800">{step.description}</p>
+            </div>
+          ))}
         </div>
-      )}
+      </StateWrapper>
     </div>
   );
 }

@@ -5,17 +5,6 @@ import HeatMap from '../../components/HeatMap';
 import ScatterChart from '../../components/ScatterChart';
 import StateWrapper from '../../components/StateWrapper';
 
-const MOCK_HEATMAP = [
-  { domain: '自动化/计算机', count: 145, grade: '2022级', major: '计算机科学与技术' },
-  { domain: '自动化/计算机', count: 132, grade: '2023级', major: '软件工程' },
-  { domain: '数学/物理/化学', count: 89, grade: '2022级', major: '计算机科学与技术' },
-  { domain: '电子技术/通信', count: 76, grade: '2023级', major: '电子信息工程' },
-  { domain: '哲学/心理学', count: 45, grade: '2022级', major: '软件工程' },
-  { domain: '自动化/计算机', count: 98, grade: '2024级', major: '人工智能' },
-  { domain: '数学/物理/化学', count: 67, grade: '2023级', major: '数学与应用数学' },
-  { domain: '文化/教育/体育', count: 34, grade: '2023级', major: '计算机科学与技术' },
-];
-
 const MOCK_GAP = [
   { domain: '自动化/计算机', demand: 145, supply: 89 },
   { domain: '数学/物理/化学', demand: 89, supply: 120 },
@@ -50,23 +39,43 @@ export default function InterestOverview() {
   const [department, setDepartment] = useState('全部');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [heatmapData, setHeatmapData] = useState<any[]>([]);
   const barRef = useRef<HTMLDivElement>(null);
 
+  const fetchData = () => {
+    setLoading(true);
+    setError(null);
+    const token = localStorage.getItem('token') || '';
+    const dept = JSON.parse(localStorage.getItem('user_info') || '{}').dept || '计算机';
+
+    fetch(`http://localhost:8000/api/teacher/${encodeURIComponent(dept)}/heatmap`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(d => {
+        setHeatmapData(d.data || []);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message || '加载热力图数据失败');
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
-    // Simulate data fetch
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    fetchData();
   }, []);
 
-  const filteredHeat = MOCK_HEATMAP.filter(
-    (d) => (grade === '全部' || d.grade === grade) && (department === '全部' || d.major === department)
+  const filteredHeat = heatmapData.filter(
+    (d: any) => (grade === '全部' || d.grade === grade) && (department === '全部' || d.major === department)
   );
 
   // Aggregate domain counts for bar chart
   const domainTotals: Record<string, number> = {};
-  for (const d of MOCK_HEATMAP) {
+  for (const d of heatmapData) {
     domainTotals[d.domain] = (domainTotals[d.domain] || 0) + d.count;
   }
   const topDomains = Object.entries(domainTotals)
@@ -121,18 +130,14 @@ export default function InterestOverview() {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, [loading]);
+  }, [loading, heatmapData]);
 
   return (
     <StateWrapper
       loading={loading}
       error={error}
       empty={false}
-      onRetry={() => {
-        setLoading(true);
-        setError(null);
-        setTimeout(() => setLoading(false), 600);
-      }}
+      onRetry={fetchData}
     >
       <div>
         <div className="mb-6">

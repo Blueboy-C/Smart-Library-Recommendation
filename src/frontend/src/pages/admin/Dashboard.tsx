@@ -1,24 +1,22 @@
 import { useState, useEffect } from 'react';
 import StateWrapper from '../../components/StateWrapper';
+import { getAdminStats } from '../../api/admin';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load stats from backend
-    fetch('http://localhost:8000/api/admin/stats', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    })
-      .then(r => r.json())
+    getAdminStats()
       .then(data => { setStats(data); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(err => { setError(err.message); setLoading(false); });
   }, []);
 
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">系统管理</h1>
-      <StateWrapper loading={loading} error={null} empty={false}>
+      <StateWrapper loading={loading} error={error} empty={false}>
         <div className="grid grid-cols-4 gap-4 mb-8">
           <StatCard title="学生总数" value={stats?.total_students || 300} color="blue" />
           <StatCard title="借阅记录" value={stats?.total_borrows || 5000} color="green" />

@@ -1,46 +1,40 @@
 import { useState } from 'react';
 import StateWrapper from '../../components/StateWrapper';
 
-const MOCK_INSIGHT = `本月2023级计算机学院学生的课外阅读集中在三个领域：大模型与AI（占比38%，较上月上升12%）、后端开发（占比21%，稳定）、网络安全（占比18%，较上月下降5%）。值得注意的变化：大模型相关图书借阅量大幅上升，但馆藏仅有34本，与当前热度不匹配，建议采购。`;
-
-const MOCK_TOP_DOMAINS = [
-  { rank: 1, domain: '大模型与AI', borrowCount: 142, change: '+12%' },
-  { rank: 2, domain: '后端开发', borrowCount: 78, change: '0%' },
-  { rank: 3, domain: '网络安全', borrowCount: 67, change: '-5%' },
-  { rank: 4, domain: '前端开发', borrowCount: 55, change: '+3%' },
-  { rank: 5, domain: '数据结构与算法', borrowCount: 48, change: '+8%' },
-  { rank: 6, domain: '操作系统', borrowCount: 42, change: '-2%' },
-  { rank: 7, domain: '计算机网络', borrowCount: 38, change: '+5%' },
-  { rank: 8, domain: '数据库', borrowCount: 35, change: '+1%' },
-  { rank: 9, domain: '软件工程', borrowCount: 29, change: '-3%' },
-  { rank: 10, domain: '数学基础', borrowCount: 22, change: '+6%' },
-];
-
 export default function InsightReport() {
   const [generating, setGenerating] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rawData, setRawData] = useState<any>(null);
 
   const handleGenerate = async () => {
     setGenerating(true);
     setInsight(null);
     setError(null);
+    setRawData(null);
+
+    const token = localStorage.getItem('token') || '';
+    const dept = JSON.parse(localStorage.getItem('user_info') || '{}').dept || '计算机';
 
     try {
-      // Simulate LLM generation delay
-      await new Promise((r) => setTimeout(r, 2000));
-      // Simulate occasional failure for demo
-      if (Math.random() < 0.05) {
-        throw new Error('报告生成服务暂时不可用');
-      }
-      setInsight(MOCK_INSIGHT);
+      const resp = await fetch(`http://localhost:8000/api/teacher/${encodeURIComponent(dept)}/insight`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ dept, grade: '' }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      setInsight(data.insight || '洞察报告生成完成');
+      setRawData(data.raw_data || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成报告失败');
     } finally {
       setGenerating(false);
     }
   };
+
+  const topDomains = rawData?.top_domains || [];
 
   return (
     <StateWrapper
@@ -101,7 +95,7 @@ export default function InsightReport() {
             <div className="flex items-center gap-3 mb-5">
               <span className="text-2xl">&#x1F4CA;</span>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">2024年4月阅读洞察报告</h2>
+                <h2 className="text-lg font-semibold text-gray-900">阅读洞察报告</h2>
                 <p className="text-xs text-gray-400">生成时间: {new Date().toLocaleString('zh-CN')}</p>
               </div>
             </div>
@@ -109,67 +103,59 @@ export default function InsightReport() {
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-5 border border-blue-100/50">
               <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{insight}</p>
             </div>
-
-            {/* Action items */}
-            <div className="mt-5 flex flex-wrap gap-3">
-              <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                <span className="text-lg">&#x1F4CC;</span>
-                <span className="text-sm text-amber-800 font-medium">建议采购大模型相关图书</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
-                <span className="text-lg">&#x1F4CC;</span>
-                <span className="text-sm text-green-800 font-medium">网络安全类资源利用率下降，可优化馆藏结构</span>
-              </div>
-            </div>
           </div>
         )}
 
         {/* Toggle raw data */}
-        <div className="flex items-center gap-2 mb-4">
-          <button
-            onClick={() => setShowRaw(!showRaw)}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors flex items-center gap-1"
-          >
-            {showRaw ? '收起' : '展开'}原始数据
-            <svg
-              className={`w-4 h-4 transition-transform ${showRaw ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
+        {rawData && (
+          <>
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                onClick={() => setShowRaw(!showRaw)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors flex items-center gap-1"
+              >
+                {showRaw ? '收起' : '展开'}原始数据
+                <svg
+                  className={`w-4 h-4 transition-transform ${showRaw ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
 
-        {showRaw && (
-          <div className="bg-white rounded-xl border border-gray-100 p-6 overflow-x-auto">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">TOP 10 借阅领域</h3>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-3 px-2 text-gray-400 font-medium">排名</th>
-                  <th className="text-left py-3 px-2 text-gray-400 font-medium">领域</th>
-                  <th className="text-right py-3 px-2 text-gray-400 font-medium">借阅量</th>
-                  <th className="text-right py-3 px-2 text-gray-400 font-medium">环比变化</th>
-                </tr>
-              </thead>
-              <tbody>
-                {MOCK_TOP_DOMAINS.map((d) => (
-                  <tr key={d.rank} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="py-3 px-2 text-gray-400">#{d.rank}</td>
-                    <td className="py-3 px-2 text-gray-800 font-medium">{d.domain}</td>
-                    <td className="py-3 px-2 text-right text-gray-700">{d.borrowCount}</td>
-                    <td className={`py-3 px-2 text-right font-medium ${
-                      d.change.startsWith('+') ? 'text-green-600' : d.change === '0%' ? 'text-gray-400' : 'text-red-500'
-                    }`}>
-                      {d.change}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            {showRaw && (
+              <div className="bg-white rounded-xl border border-gray-100 p-6 overflow-x-auto">
+                <h3 className="text-base font-semibold text-gray-900 mb-4">TOP {topDomains.length} 借阅领域</h3>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left py-3 px-2 text-gray-400 font-medium">排名</th>
+                      <th className="text-left py-3 px-2 text-gray-400 font-medium">领域</th>
+                      <th className="text-right py-3 px-2 text-gray-400 font-medium">借阅量</th>
+                      <th className="text-right py-3 px-2 text-gray-400 font-medium">环比变化</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topDomains.map((d: any, i: number) => (
+                      <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                        <td className="py-3 px-2 text-gray-400">#{d.rank || i + 1}</td>
+                        <td className="py-3 px-2 text-gray-800 font-medium">{d.domain}</td>
+                        <td className="py-3 px-2 text-right text-gray-700">{d.borrowCount || d.count}</td>
+                        <td className={`py-3 px-2 text-right font-medium ${
+                          (d.change || '').startsWith('+') ? 'text-green-600' : (d.change || '') === '0%' ? 'text-gray-400' : 'text-red-500'
+                        }`}>
+                          {d.change || '--'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </div>
     </StateWrapper>
