@@ -13,6 +13,9 @@ const MOCK_GAP = [
   { domain: '文化/教育/体育', demand: 34, supply: 62 },
 ];
 
+const GRADES = ['全部', '2022', '2023', '2024', '2025'];
+const DEPARTMENTS = ['全部', '计算机科学与技术', '软件工程', '电子信息工程', '人工智能', '数学与应用数学', '自动化'];
+
 const deviationData = {
   domains: ['自动化/计算机', '数学/物理', '电子/通信', '文学', '哲学/心理'],
   inclass: [120, 85, 70, 30, 25],
@@ -40,13 +43,15 @@ export default function InterestOverview() {
   const [heatmapData, setHeatmapData] = useState<any[]>([]);
   const barRef = useRef<HTMLDivElement>(null);
 
-  const fetchHeatmap = () => {
+  const fetchData = (g?: string, d?: string) => {
     setLoading(true);
     setError(null);
     const token = localStorage.getItem('token') || '';
+    const effectiveDept = (d !== undefined ? d : dept) === '全部' ? defaultDept : (d !== undefined ? d : dept);
+    const effectiveGrade = (g !== undefined ? g : grade) === '全部' ? '' : (g !== undefined ? g : grade);
 
-    let url = `http://localhost:8000/api/teacher/${encodeURIComponent(dept)}/heatmap`;
-    if (grade) url += `?grade=${encodeURIComponent(grade)}`;
+    let url = `http://localhost:8000/api/teacher/${encodeURIComponent(effectiveDept)}/heatmap`;
+    if (effectiveGrade) url += `?grade=${encodeURIComponent(effectiveGrade)}`;
 
     fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
@@ -66,8 +71,8 @@ export default function InterestOverview() {
   };
 
   useEffect(() => {
-    fetchHeatmap();
-  }, [dept, grade]);
+    fetchData();
+  }, []);
 
   const filteredHeat = heatmapData;
 
@@ -135,7 +140,7 @@ export default function InterestOverview() {
       loading={loading}
       error={error}
       empty={false}
-      onRetry={fetchHeatmap}
+      onRetry={fetchData}
     >
       <div>
         <div className="mb-6">
@@ -146,32 +151,27 @@ export default function InterestOverview() {
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-6">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500 font-medium">院系:</label>
-            <select
-              value={dept}
-              onChange={(e) => setDept(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            >
-              <option value="计算机">计算机科学与技术</option>
-              <option value="软件">软件工程</option>
-              <option value="电子">电子信息工程</option>
-              <option value="数学">数学与应用数学</option>
-              <option value="自动化">自动化</option>
-              <option value="">全部院系</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
             <label className="text-sm text-gray-500 font-medium">年级:</label>
             <select
               value={grade}
-              onChange={(e) => setGrade(e.target.value)}
+              onChange={(e) => { setGrade(e.target.value); fetchData(e.target.value, dept); }}
               className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             >
-              <option value="">全部年级</option>
-              <option value="2022">2022级</option>
-              <option value="2023">2023级</option>
-              <option value="2024">2024级</option>
-              <option value="2025">2025级</option>
+              {GRADES.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500 font-medium">院系:</label>
+            <select
+              value={dept}
+              onChange={(e) => { setDept(e.target.value); fetchData(grade, e.target.value); }}
+              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            >
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
             </select>
           </div>
         </div>

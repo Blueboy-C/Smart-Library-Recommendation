@@ -129,21 +129,31 @@ export default function InsightReport() {
             {showRaw && (
               <div className="bg-white rounded-xl border border-gray-100 p-6 overflow-x-auto">
                 <h3 className="text-base font-semibold text-gray-900 mb-4">数据概览</h3>
-                <p className="text-sm text-gray-500 mb-3">总借阅量: {rawData.total_borrows}</p>
+                <p className="text-sm text-gray-500 mb-4">总借阅量: {rawData.total_borrows || 0}</p>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100">
+                      <th className="text-left py-3 px-2 text-gray-400 font-medium">排名</th>
                       <th className="text-left py-3 px-2 text-gray-400 font-medium">领域</th>
                       <th className="text-right py-3 px-2 text-gray-400 font-medium">借阅次数</th>
+                      <th className="text-right py-3 px-2 text-gray-400 font-medium">占比</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {topDomains.map(([domain, count]: [string, number]) => (
-                      <tr key={domain} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                        <td className="py-3 px-2 text-gray-800 font-medium">{domain}</td>
-                        <td className="py-3 px-2 text-right text-gray-700">{count}</td>
-                      </tr>
-                    ))}
+                    {topDomains.map((d: any, i: number) => {
+                      const domain = Array.isArray(d) ? d[0] : d.domain;
+                      const count = Array.isArray(d) ? d[1] : (d.count || d.borrowCount || 0);
+                      const total = rawData.total_borrows || 1;
+                      const pct = ((count / total) * 100).toFixed(1);
+                      return (
+                        <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50">
+                          <td className="py-3 px-2 text-gray-400">#{i + 1}</td>
+                          <td className="py-3 px-2 text-gray-800 font-medium">{domain}</td>
+                          <td className="py-3 px-2 text-right text-gray-700">{count}</td>
+                          <td className="py-3 px-2 text-right text-gray-500">{pct}%</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
