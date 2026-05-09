@@ -55,4 +55,22 @@ def startup():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "0.1.0"}
+    status = {"status": "ok", "version": "0.1.0"}
+    # Add DB check
+    try:
+        from .database import SessionLocal
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        status["database"] = "ok"
+    except Exception as e:
+        status["database"] = f"error: {str(e)[:50]}"
+        status["status"] = "degraded"
+    # Add LLM check
+    try:
+        from llm.client import get_llm_client
+        client = get_llm_client()
+        status["llm"] = "configured" if client.api_key else "not configured"
+    except Exception:
+        status["llm"] = "not available"
+    return status
