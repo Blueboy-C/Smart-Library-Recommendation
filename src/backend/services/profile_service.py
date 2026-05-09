@@ -1,19 +1,24 @@
 """学生画像构建服务"""
 import datetime
+from pathlib import Path
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models import Student as StudentORM, BorrowRecord as BorrowRecordORM, CourseRecord as CourseRecordORM
-from ...data.feature_engineering import extract_student_features, compute_course_domains, cross_analysis
-from ...data.importers import import_book_meta
-from ...data.models import StudentFeature, BorrowRecord as BorrowRecordData, CourseRecord as CourseRecordData
+from data.feature_engineering import extract_student_features, compute_course_domains, cross_analysis
+from data.importers import import_book_meta
+from data.models import StudentFeature, BorrowRecord as BorrowRecordData, CourseRecord as CourseRecordData
 
+
+# Resolve paths relative to project root (4 levels up from this file: services/backend/src/project_root)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+_DATA_PROCESSED = _PROJECT_ROOT / "data" / "processed"
 
 _book_cache: dict[str, any] = {}
 
 def _load_books() -> dict[str, any]:
     global _book_cache
     if not _book_cache:
-        books = import_book_meta("data/processed/books_meta.csv")
+        books = import_book_meta(str(_DATA_PROCESSED / "books_meta.csv"))
         _book_cache = {b.book_id: b for b in books}
     return _book_cache
 

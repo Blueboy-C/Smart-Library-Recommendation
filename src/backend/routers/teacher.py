@@ -2,8 +2,8 @@
 from fastapi import APIRouter
 from ..schemas import InsightRequest
 from ..services.profile_service import build_profile
-from ...llm.client import get_llm_client
-from ...llm.prompts import TEACHER_INSIGHT
+from llm.client import get_llm_client
+from llm.prompts import TEACHER_INSIGHT
 
 router = APIRouter(prefix="/api/teacher", tags=["teacher"])
 
@@ -14,7 +14,7 @@ def get_heatmap(dept: str = "", grade: str = ""):
     from ..database import SessionLocal
     from ..models import Student, BorrowRecord
     from collections import Counter
-    from ...data.domain_mapping import clc_to_domain
+    from data.domain_mapping import clc_to_domain
 
     db = SessionLocal()
     try:
@@ -43,7 +43,7 @@ def get_clusters(dept: str = "", grade: str = ""):
     """返回学生行为分群数据（简化版：按阅读深度和广度分群）"""
     from ..database import SessionLocal
     from ..models import Student, BorrowRecord
-    from ...data.domain_mapping import clc_to_domain
+    from data.domain_mapping import clc_to_domain
 
     db = SessionLocal()
     try:
@@ -81,7 +81,7 @@ async def generate_insight(dept: str = "", request: InsightRequest = InsightRequ
     from ..database import SessionLocal
     from ..models import BorrowRecord
     from collections import Counter
-    from ...data.domain_mapping import clc_to_domain
+    from data.domain_mapping import clc_to_domain
 
     db = SessionLocal()
     try:

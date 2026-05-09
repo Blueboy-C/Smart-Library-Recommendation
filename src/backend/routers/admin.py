@@ -9,15 +9,16 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 @router.post("/import/all")
 def import_all(db: Session = Depends(get_db)):
-    from ...data.importers import (
+    from pathlib import Path
+    from data.importers import (
         import_students,
         import_borrow_records,
         import_book_meta,
         import_course_records,
     )
-    from ...data.cleaners import clean_borrow_records, clean_course_records
+    from data.cleaners import clean_borrow_records, clean_course_records
 
-    base = "data/processed"
+    base = str(Path(__file__).resolve().parent.parent.parent.parent / "data" / "processed")
     students = import_students(f"{base}/students.csv")
     for s in students:
         db.merge(
@@ -78,3 +79,11 @@ def import_all(db: Session = Depends(get_db)):
         "borrows": len(borrows),
         "courses": len(courses),
     }
+
+
+@router.post("/import/sync")
+def sync_from_external():
+    """从外部数据源同步数据"""
+    from data.data_sync import sync_all
+    result = sync_all()
+    return {"status": "ok", **result}

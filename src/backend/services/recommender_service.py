@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models import Student as StudentORM, BorrowRecord, Book
 from .profile_service import build_profile, _load_books
-from ...recommender.content_based import BasicContentRecommender
-from ...recommender.collaborative import UserBasedCF
-from ...recommender.hybrid import HybridRecommender
+from recommender.content_based import BasicContentRecommender
+from recommender.collaborative import UserBasedCF
+from recommender.hybrid import HybridRecommender
 
 
 def get_recommendations(student_id: str, top_k: int = 20, item_type: str = "book") -> list[dict]:
@@ -33,7 +33,7 @@ def get_recommendations(student_id: str, top_k: int = 20, item_type: str = "book
         all_students = db.query(StudentORM).all()
         for s in all_students:
             borrows = db.query(BorrowRecord).filter(BorrowRecord.student_id == s.student_id).all()
-            from ...data.domain_mapping import clc_to_domain
+            from data.domain_mapping import clc_to_domain
             from collections import Counter
             domain_counter = Counter()
             for b in borrows:

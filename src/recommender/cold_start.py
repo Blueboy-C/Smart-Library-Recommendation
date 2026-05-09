@@ -4,7 +4,7 @@ from collections import Counter
 
 def popular_by_major(major: str, all_borrows: list, top_k: int = 20) -> list[str]:
     """同专业热门借阅"""
-    from ..data.domain_mapping import clc_to_domain
+    from data.domain_mapping import clc_to_domain
     major_borrows = [b for b in all_borrows if hasattr(b, 'major') and b.major == major]
     counter = Counter(b.book_id for b in major_borrows)
     return [item for item, _ in counter.most_common(top_k)]

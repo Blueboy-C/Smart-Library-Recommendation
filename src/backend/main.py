@@ -1,8 +1,12 @@
 """FastAPI应用入口"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import init_db
-from .routers import admin, students, dialogue, teacher
+from .routers import admin, students, dialogue, teacher, books
 
 app = FastAPI(title="智慧图书馆推荐系统", version="0.1.0")
 
@@ -18,6 +22,7 @@ app.include_router(admin.router)
 app.include_router(students.router)
 app.include_router(dialogue.router)
 app.include_router(teacher.router)
+app.include_router(books.router)
 
 
 @app.on_event("startup")

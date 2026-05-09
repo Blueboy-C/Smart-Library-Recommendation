@@ -1,6 +1,6 @@
 """LLM API客户端（OpenAI兼容接口）"""
 import httpx
-from ..backend.config import settings
+from backend.config import settings
 
 
 class LLMClient:

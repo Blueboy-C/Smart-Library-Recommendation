@@ -2,8 +2,8 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from ...llm.client import get_llm_client
-from ...llm.prompts import DIALOGUE_SYSTEM_PROMPT, LEARNING_PATH
+from llm.client import get_llm_client
+from llm.prompts import DIALOGUE_SYSTEM_PROMPT, LEARNING_PATH
 from ..services.profile_service import build_profile
 from ..schemas import PathPlanRequest, SearchQuery
 
