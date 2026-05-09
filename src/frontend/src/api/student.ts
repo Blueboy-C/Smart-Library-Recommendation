@@ -1,23 +1,32 @@
 import axios from 'axios';
 import type { StudentProfile, RecommendItem, FeedbackStats } from '../types';
 import { authHeader } from './auth';
+import { useAuthStore } from '../stores/authStore';
 
 const API = 'http://localhost:8000/api';
-// 默认学生ID（未登录时使用）
-const DEFAULT_STUDENT = 'S2022001';
 
-export async function getProfile(studentId = DEFAULT_STUDENT): Promise<StudentProfile> {
-  const resp = await axios.get(`${API}/student/${studentId}/profile`, {
+export function getDefaultStudentId(): string {
+  const store = useAuthStore.getState();
+  if (store.user?.student_id) {
+    return store.user.student_id;
+  }
+  return 'S2022001';
+}
+
+export async function getProfile(studentId?: string): Promise<StudentProfile> {
+  const sid = studentId || getDefaultStudentId();
+  const resp = await axios.get(`${API}/student/${sid}/profile`, {
     headers: authHeader(),
   });
   return resp.data;
 }
 
 export async function getRecommendations(
-  studentId = DEFAULT_STUDENT,
+  studentId?: string,
   topK = 20,
 ): Promise<{ student_id: string; items: RecommendItem[] }> {
-  const resp = await axios.get(`${API}/student/${studentId}/recommendations`, {
+  const sid = studentId || getDefaultStudentId();
+  const resp = await axios.get(`${API}/student/${sid}/recommendations`, {
     params: { top_k: topK },
     headers: authHeader(),
   });
@@ -62,12 +71,13 @@ export async function postFeedback(
 }
 
 export async function getHistory(
-  studentId = DEFAULT_STUDENT,
+  studentId?: string,
 ): Promise<{
   stats: FeedbackStats;
   current_recommendations: RecommendItem[];
 }> {
-  const resp = await axios.get(`${API}/student/${studentId}/history`, {
+  const sid = studentId || getDefaultStudentId();
+  const resp = await axios.get(`${API}/student/${sid}/history`, {
     headers: authHeader(),
   });
   return resp.data;

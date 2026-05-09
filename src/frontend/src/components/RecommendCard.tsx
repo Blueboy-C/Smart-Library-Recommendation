@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import type { RecommendItem } from '../types';
-import FeedbackButtons from './FeedbackButtons';
 
 interface Props {
   item: RecommendItem;
+  feedback?: 'useful' | 'skip';
   onFeedback: (itemId: string, type: 'useful' | 'skip') => void;
 }
 
@@ -13,7 +13,7 @@ const typeLabels: Record<string, { label: string; color: string }> = {
   activity: { label: '活动', color: 'bg-orange-100 text-orange-700' },
 };
 
-export default function RecommendCard({ item, onFeedback }: Props) {
+export default function RecommendCard({ item, feedback, onFeedback }: Props) {
   const navigate = useNavigate();
   const t = typeLabels[item.item_type];
 
@@ -46,7 +46,34 @@ export default function RecommendCard({ item, onFeedback }: Props) {
         </div>
       </div>
       <div onClick={(e) => e.stopPropagation()}>
-        <FeedbackButtons itemId={item.item_id} onFeedback={onFeedback} />
+        <div className="flex items-center gap-2 mt-3">
+          <button
+            onClick={() => onFeedback(item.item_id, 'useful')}
+            disabled={feedback != null}
+            className={`px-3 py-1 text-xs rounded ${
+              feedback === 'useful'
+                ? 'bg-green-500 text-white'
+                : feedback
+                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                : 'bg-gray-100 text-green-600 hover:bg-green-50'
+            }`}
+          >
+            {feedback === 'useful' ? '✓ 已标记有用' : '有用'}
+          </button>
+          <button
+            onClick={() => onFeedback(item.item_id, 'skip')}
+            disabled={feedback != null}
+            className={`px-3 py-1 text-xs rounded ${
+              feedback === 'skip'
+                ? 'bg-red-300 text-white'
+                : feedback
+                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {feedback === 'skip' ? '✗ 已跳过' : '跳过'}
+          </button>
+        </div>
       </div>
     </div>
   );

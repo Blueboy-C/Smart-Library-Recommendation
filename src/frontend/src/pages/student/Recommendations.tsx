@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { RecommendItem } from '../../types';
-import { getRecommendations } from '../../api/student';
+import { getRecommendations, postFeedback, getDefaultStudentId } from '../../api/student';
 import RecommendCard from '../../components/RecommendCard';
 import StateWrapper from '../../components/StateWrapper';
 
@@ -17,6 +17,7 @@ export default function Recommendations() {
   const [activeTab, setActiveTab] = useState<TabType>('book');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, 'useful' | 'skip'>>({});
 
   const fetchData = () => {
     setLoading(true);
@@ -40,7 +41,8 @@ export default function Recommendations() {
   const filtered = items.filter((item) => item.item_type === activeTab);
 
   const handleFeedback = (itemId: string, type: 'useful' | 'skip') => {
-    console.log(`Feedback: ${itemId} -> ${type}`);
+    postFeedback(getDefaultStudentId(), itemId, type).catch(console.error);
+    setFeedbackMap(prev => ({ ...prev, [itemId]: type }));
   };
 
   return (
@@ -78,7 +80,7 @@ export default function Recommendations() {
       >
         <div className="grid gap-4">
           {filtered.slice(0, 10).map((item) => (
-            <RecommendCard key={item.item_id} item={item} onFeedback={handleFeedback} />
+            <RecommendCard key={item.item_id} item={item} feedback={feedbackMap[item.item_id]} onFeedback={handleFeedback} />
           ))}
         </div>
       </StateWrapper>
