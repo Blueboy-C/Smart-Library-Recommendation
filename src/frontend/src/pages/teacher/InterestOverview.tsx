@@ -35,20 +35,25 @@ const GRADES = ['全部', '2022级', '2023级', '2024级'];
 const DEPARTMENTS = ['全部', '计算机科学与技术', '软件工程', '电子信息工程', '人工智能', '数学与应用数学'];
 
 export default function InterestOverview() {
-  const [grade, setGrade] = useState('全部');
-  const [department, setDepartment] = useState('全部');
+  const [grade, setSelectedGrade] = useState('');
+  const [department, setSelectedDept] = useState('全部');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [heatmapData, setHeatmapData] = useState<any[]>([]);
   const barRef = useRef<HTMLDivElement>(null);
 
-  const fetchData = () => {
+  const fetchData = (g?: string, d?: string) => {
     setLoading(true);
     setError(null);
     const token = localStorage.getItem('token') || '';
     const dept = JSON.parse(localStorage.getItem('user_info') || '{}').dept || '计算机';
+    const effectiveDept = d || dept;
+    const effectiveGrade = g || '';
 
-    fetch(`http://localhost:8000/api/teacher/${encodeURIComponent(dept)}/heatmap`, {
+    let url = `http://localhost:8000/api/teacher/${encodeURIComponent(effectiveDept)}/heatmap`;
+    if (effectiveGrade) url += `?grade=${encodeURIComponent(effectiveGrade)}`;
+
+    fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => {
@@ -70,7 +75,7 @@ export default function InterestOverview() {
   }, []);
 
   const filteredHeat = heatmapData.filter(
-    (d: any) => (grade === '全部' || d.grade === grade) && (department === '全部' || d.major === department)
+    (d: any) => (grade === '' || d.grade === grade) && (department === '全部' || d.major === department)
   );
 
   // Aggregate domain counts for bar chart
@@ -151,11 +156,11 @@ export default function InterestOverview() {
             <label className="text-sm text-gray-500 font-medium">年级:</label>
             <select
               value={grade}
-              onChange={(e) => setGrade(e.target.value)}
+              onChange={(e) => { setSelectedGrade(e.target.value); fetchData(e.target.value, department); }}
               className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             >
               {GRADES.map((g) => (
-                <option key={g} value={g}>{g}</option>
+                <option key={g} value={g === '全部' ? '' : g}>{g}</option>
               ))}
             </select>
           </div>
@@ -163,7 +168,7 @@ export default function InterestOverview() {
             <label className="text-sm text-gray-500 font-medium">院系:</label>
             <select
               value={department}
-              onChange={(e) => setDepartment(e.target.value)}
+              onChange={(e) => { setSelectedDept(e.target.value); fetchData(grade, e.target.value); }}
               className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             >
               {DEPARTMENTS.map((d) => (

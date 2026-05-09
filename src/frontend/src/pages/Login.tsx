@@ -17,7 +17,14 @@ export default function Login() {
     setLoading(true);
     try {
       await login(username, password);
-      navigate('/', { replace: true });
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'teacher') {
+        navigate('/teacher/overview', { replace: true });
+      } else if (user?.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosErr = err as { response?: { data?: { detail?: string } } };

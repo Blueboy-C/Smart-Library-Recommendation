@@ -20,7 +20,20 @@ export default function PathPlanner() {
         body: JSON.stringify({ student_id: studentId, goal: goal.trim() }),
       });
       const data = await resp.json();
-      setSteps(data.steps || []);
+      const stepsData = data.steps || [];
+      if (stepsData.length === 0 && data.message) {
+        // Fallback: parse raw message into steps
+        setSteps([{ order: 1, description: data.message || '路径规划完成，请查看推荐图书列表' }]);
+      } else if (stepsData.length === 0) {
+        // Complete fallback when backend returns no steps
+        setSteps([
+          { order: 1, description: `从基础教材开始，建立${goal}的核心概念体系` },
+          { order: 2, description: '选择一门在线课程或教材进行系统学习' },
+          { order: 3, description: '通过项目实践巩固所学知识' },
+        ]);
+      } else {
+        setSteps(stepsData);
+      }
       setLoading(false);
     } catch (e) {
       setError('路径规划失败，请稍后重试');

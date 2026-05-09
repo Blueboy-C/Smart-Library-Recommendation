@@ -20,6 +20,7 @@ const typeLabels: Record<string, string> = {
 
 export default function History() {
   const [records, setRecords] = useState<FeedbackRecord[]>([]);
+  const [stats, setStats] = useState({ total_feedback: 0, useful: 0, adoption_rate: 0 });
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,8 @@ export default function History() {
     setError(null);
     getHistory()
       .then((data) => {
+        // Use backend stats
+        setStats(data.stats || { total_feedback: 0, useful: 0, adoption_rate: 0 });
         // Transform API response: map current_recommendations -> FeedbackRecord[]
         const mapped: FeedbackRecord[] = (data.current_recommendations || []).map(
           (item) => ({
@@ -57,10 +60,6 @@ export default function History() {
 
   const filtered = filter === 'all' ? records : records.filter((r) => r.item_type === filter);
 
-  const totalFeedback = records.length;
-  const usefulCount = records.filter((r) => r.feedback === 'useful').length;
-  const adoptionRate = totalFeedback > 0 ? Math.round((usefulCount / totalFeedback) * 100) : 0;
-
   return (
     <div>
       <div className="mb-6">
@@ -68,22 +67,22 @@ export default function History() {
         <p className="text-sm text-gray-500 mt-1">查看过往推荐记录和你的反馈</p>
       </div>
 
-      {/* Stats bar - only show when there's data */}
-      {!loading && !error && records.length > 0 && (
+      {/* Stats bar - from backend stats */}
+      {!loading && !error && stats.total_feedback > 0 && (
         <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6">
           <div className="flex items-center gap-8">
             <div>
-              <div className="text-2xl font-bold text-gray-900">{totalFeedback}</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.total_feedback}</div>
               <div className="text-xs text-gray-400 mt-1">总推荐</div>
             </div>
             <div className="w-px h-10 bg-gray-100" />
             <div>
-              <div className="text-2xl font-bold text-green-600">{usefulCount}</div>
+              <div className="text-2xl font-bold text-green-600">{stats.useful}</div>
               <div className="text-xs text-gray-400 mt-1">有用</div>
             </div>
             <div className="w-px h-10 bg-gray-100" />
             <div>
-              <div className="text-2xl font-bold text-blue-600">{adoptionRate}%</div>
+              <div className="text-2xl font-bold text-blue-600">{stats.adoption_rate}%</div>
               <div className="text-xs text-gray-400 mt-1">采纳率</div>
             </div>
           </div>

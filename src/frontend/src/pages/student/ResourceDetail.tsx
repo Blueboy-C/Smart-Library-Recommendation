@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getBookDetail, getRelatedBooks } from '../../api/student';
+import { getBookDetail, getRelatedBooks, postFeedback, postBehavior, getDefaultStudentId, getFeedbackStatus } from '../../api/student';
 
 interface BookData {
   book_id: string;
@@ -19,6 +19,9 @@ export default function ResourceDetail() {
   const navigate = useNavigate();
   const [startTime] = useState(Date.now());
   const [feedback, setFeedback] = useState<'useful' | 'skip' | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const studentId = getDefaultStudentId();
+  const itemId = id || '';
   const [book, setBook] = useState<BookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +43,19 @@ export default function ResourceDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Load existing feedback for this book
+  useEffect(() => {
+    if (!id) return;
+    getFeedbackStatus(studentId, [id])
+      .then((fb) => {
+        const status = fb[id];
+        if (status === 'useful' || status === 'skip') {
+          setFeedback(status);
+        }
+      })
+      .catch(() => {});
+  }, [id, studentId]);
+
   // Fetch related books
   useEffect(() => {
     if (!id) return;
@@ -48,18 +64,20 @@ export default function ResourceDetail() {
       .catch(() => {});
   }, [id]);
 
-  // Track stay duration
+  // Track stay duration and send behavior on page leave
   useEffect(() => {
     const handleLeave = () => {
-      const staySeconds = (Date.now() - startTime) / 1000;
-      console.log(`[Behavior] stay=${staySeconds.toFixed(1)}s on ${type}/${id}`);
+      const staySeconds = Math.round((Date.now() - startTime) / 1000);
+      if (staySeconds >= 5 && itemId) {
+        postBehavior(studentId, itemId, 'view', staySeconds, 0).catch(() => {});
+      }
     };
     window.addEventListener('beforeunload', handleLeave);
     return () => {
       handleLeave();
       window.removeEventListener('beforeunload', handleLeave);
     };
-  }, [startTime, type, id]);
+  }, [startTime, type, itemId, studentId]);
 
   // ── Loading skeleton ──────────────────────────────────
   if (loading) {
@@ -146,22 +164,39 @@ export default function ResourceDetail() {
           </p>
         </div>
         <div className="flex gap-3 pt-4 flex-wrap">
-          <button className="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">收藏</button>
+          <button
+            onClick={() => postBehavior(studentId, itemId, 'bookmark')}
+            className="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
+          >收藏</button>
           {book.available_copies === 0 && (
             <button className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">预约</button>
           )}
           {feedback !== 'useful' && (
             <button
-              onClick={() => setFeedback('useful')}
-              className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+              onClick={() => {
+                setFeedbackLoading(true);
+                postFeedback(studentId, itemId, 'useful')
+                  .then(() => setFeedback('useful'))
+                  .catch(() => setFeedback(null))
+                  .finally(() => setFeedbackLoading(false));
+              }}
+              disabled={feedbackLoading}
+              className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
             >
               有用 &#x2713;
             </button>
           )}
           {feedback !== 'skip' && (
             <button
-              onClick={() => setFeedback('skip')}
-              className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
+              onClick={() => {
+                setFeedbackLoading(true);
+                postFeedback(studentId, itemId, 'skip')
+                  .then(() => setFeedback('skip'))
+                  .catch(() => setFeedback(null))
+                  .finally(() => setFeedbackLoading(false));
+              }}
+              disabled={feedbackLoading}
+              className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 disabled:opacity-50"
             >
               跳过 &#x2717;
             </button>

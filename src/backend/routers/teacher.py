@@ -69,12 +69,14 @@ def get_clusters(dept: str = "", grade: str = "", payload: dict = Depends(verify
 
             if count == 0:
                 clusters["dormant"].append({"student_id": s.student_id, "grade": s.grade, "major": s.major})
-            elif avg_days > 20:
+            elif avg_days > 20 and domains >= 3:
                 clusters["deep_readers"].append({"student_id": s.student_id, "grade": s.grade, "major": s.major, "avg_days": round(avg_days, 1)})
-            elif domains >= 3:
+            elif domains >= 4:
                 clusters["broad_explorers"].append({"student_id": s.student_id, "grade": s.grade, "major": s.major, "domains": domains})
-            else:
+            elif count <= 3:
                 clusters["exam_driven"].append({"student_id": s.student_id, "grade": s.grade, "major": s.major})
+            else:
+                clusters["deep_readers"].append({"student_id": s.student_id, "grade": s.grade, "major": s.major, "avg_days": round(avg_days, 1)})
         return {"clusters": {k: len(v) for k, v in clusters.items()}, "details": clusters}
     finally:
         db.close()

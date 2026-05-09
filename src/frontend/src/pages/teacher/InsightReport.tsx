@@ -25,7 +25,7 @@ export default function InsightReport() {
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
-      setInsight(data.insight || '洞察报告生成完成');
+      setInsight(data.insight || '洞察报告生成完成。请查看下方数据摘要了解学生阅读概况。');
       setRawData(data.raw_data || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成报告失败');
@@ -156,6 +156,26 @@ export default function InsightReport() {
               </div>
             )}
           </>
+        )}
+
+        {/* Always show domain distribution table when rawData has top_domains */}
+        {rawData?.top_domains && rawData.top_domains.length > 0 && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-medium text-sm mb-2">领域分布 Top {rawData.top_domains.length}</h4>
+            <table className="w-full text-sm">
+              <thead>
+                <tr><th className="text-left text-gray-500 font-medium py-1">领域</th><th className="text-right text-gray-500 font-medium py-1">借阅次数</th></tr>
+              </thead>
+              <tbody>
+                {rawData.top_domains.map(([domain, count]: [string, number]) => (
+                  <tr key={domain} className="border-t border-gray-200/50">
+                    <td className="py-1.5 text-gray-800">{domain}</td>
+                    <td className="py-1.5 text-right text-gray-700">{count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </StateWrapper>

@@ -22,6 +22,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Role-based root redirect: teacher -> /teacher/overview, admin -> /admin, student -> / */
+function RootRedirect() {
+  const user = useAuthStore((s) => s.user);
+  if (user?.role === 'teacher') {
+    return <Navigate to="/teacher/overview" replace />;
+  }
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+  return <Recommendations />;
+}
+
 export default function App() {
   const init = useAuthStore((s) => s.init);
 
@@ -40,7 +52,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Recommendations />} />
+          <Route path="/" element={<RootRedirect />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/history" element={<History />} />
           <Route path="/path-planner" element={<PathPlanner />} />

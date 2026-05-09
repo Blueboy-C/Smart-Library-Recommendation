@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { RecommendItem } from '../../types';
-import { getRecommendations, postFeedback, getDefaultStudentId } from '../../api/student';
+import { getRecommendations, postFeedback, getDefaultStudentId, getFeedbackStatus } from '../../api/student';
 import RecommendCard from '../../components/RecommendCard';
 import StateWrapper from '../../components/StateWrapper';
 
@@ -18,13 +18,22 @@ export default function Recommendations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, 'useful' | 'skip'>>({});
+  const [toast, setToast] = useState<string | null>(null);
 
   const fetchData = () => {
     setLoading(true);
     setError(null);
     getRecommendations()
-      .then((res) => {
+      .then(async (res) => {
         setItems(res.items);
+        // Load existing feedback for these items from backend
+        const ids = res.items.map(i => i.item_id);
+        try {
+          const fb = await getFeedbackStatus(getDefaultStudentId(), ids);
+          setFeedbackMap(fb as Record<string, 'useful' | 'skip'>);
+        } catch {
+          // Non-critical: feedback history not available
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -41,12 +50,28 @@ export default function Recommendations() {
   const filtered = items.filter((item) => item.item_type === activeTab);
 
   const handleFeedback = (itemId: string, type: 'useful' | 'skip') => {
-    postFeedback(getDefaultStudentId(), itemId, type).catch(console.error);
-    setFeedbackMap(prev => ({ ...prev, [itemId]: type }));
+    postFeedback(getDefaultStudentId(), itemId, type)
+      .then(() => {
+        setFeedbackMap(prev => ({ ...prev, [itemId]: type }));
+        setToast(type === 'useful' ? '已标记为有用 ✓' : '已跳过');
+        // Remove skipped items from display immediately
+        if (type === 'skip') {
+          setItems(prev => prev.filter(item => item.item_id !== itemId));
+        }
+        setTimeout(() => setToast(null), 2000);
+      })
+      .catch(console.error);
   };
 
   return (
     <div>
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 animate-bounce">
+          {toast}
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">个性化推荐</h1>
@@ -71,19 +96,41 @@ export default function Recommendations() {
       </div>
 
       {/* Content */}
-      <StateWrapper
-        loading={loading}
-        error={error}
-        empty={!loading && !error && filtered.length === 0}
-        emptyMessage={`暂无${activeTab === 'book' ? '图书' : activeTab === 'course' ? '课程' : '活动'}推荐`}
-        onRetry={fetchData}
-      >
-        <div className="grid gap-4">
-          {filtered.slice(0, 10).map((item) => (
-            <RecommendCard key={item.item_id} item={item} feedback={feedbackMap[item.item_id]} onFeedback={handleFeedback} />
-          ))}
+      {activeTab === 'book' && (
+        <StateWrapper
+          loading={loading}
+          error={error}
+          empty={!loading && !error && filtered.length === 0}
+          emptyMessage="暂无图书推荐"
+          onRetry={fetchData}
+        >
+          <div className="grid gap-4">
+            {filtered.slice(0, 10).map((item) => (
+              <RecommendCard key={item.item_id} item={item} feedback={feedbackMap[item.item_id]} onFeedback={handleFeedback} />
+            ))}
+          </div>
+        </StateWrapper>
+      )}
+
+      {activeTab === 'course' && (
+        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+          <div className="text-4xl mb-4">📚</div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">课程推荐功能即将开放</h3>
+          <p className="text-sm text-gray-500 max-w-md mx-auto">
+            课程推荐功能需要接入教务系统课程数据后开放
+          </p>
         </div>
-      </StateWrapper>
+      )}
+
+      {activeTab === 'activity' && (
+        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+          <div className="text-4xl mb-4">🎯</div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">活动推荐功能即将开放</h3>
+          <p className="text-sm text-gray-500 max-w-md mx-auto">
+            活动推荐将在学术活动数据接入后开放
+          </p>
+        </div>
+      )}
     </div>
   );
 }
