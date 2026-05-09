@@ -51,12 +51,55 @@ def post_behavior(event: BehaviorEvent, payload: dict = Depends(verify_token)):
     return {"status": "ok"}
 
 
+@router.get("/{student_id}/feedback-status")
+def get_feedback_status(student_id: str, item_ids: str = "", payload: dict = Depends(verify_token)):
+    """查询学生对一批推荐项的反馈状态"""
+    if payload["role"] == "student" and student_id != payload.get("student_id", ""):
+        raise HTTPException(status_code=403, detail="无权查看其他学生的反馈")
+    from ..database import SessionLocal
+    from ..models import BehaviorLog
+    ids = [i.strip() for i in item_ids.split(",") if i.strip()]
+    if not ids:
+        return {"feedback": {}}
+    db = SessionLocal()
+    try:
+        logs = db.query(BehaviorLog).filter(
+            BehaviorLog.student_id == student_id,
+            BehaviorLog.item_id.in_(ids),
+            BehaviorLog.action_type.in_(["useful", "skip"])
+        ).all()
+        result = {}
+        for log in logs:
+            result[log.item_id] = log.action_type
+        return {"feedback": result}
+    finally:
+        db.close()
+
+
 @router.get("/{student_id}/history")
-def get_history(student_id: str, payload: dict = Depends(verify_token)):
-    """返回推荐历史（含反馈统计）"""
+def get_history(student_id: str, filter_type: str = "all", payload: dict = Depends(verify_token)):
+    """返回推荐历史（含反馈统计），支持 filter_type=bookmarked / all"""
     if payload["role"] == "student" and student_id != payload.get("student_id", ""):
         raise HTTPException(status_code=403, detail="无权查看其他学生的历史")
     profile = build_profile(student_id)
     stats = get_feedback_stats(student_id)
     recs = get_recommendations(student_id, top_k=10)
+
+    # If filter_type == "bookmarked", filter items saved as bookmark
+    if filter_type == "bookmarked" and recs:
+        from ..database import SessionLocal
+        from ..models import BehaviorLog
+        db = SessionLocal()
+        try:
+            bookmarked_ids = set(
+                log.item_id for log in
+                db.query(BehaviorLog).filter(
+                    BehaviorLog.student_id == student_id,
+                    BehaviorLog.action_type == "bookmark"
+                ).all()
+            )
+            recs = [r for r in recs if r.get("item_id") in bookmarked_ids]
+        finally:
+            db.close()
+
     return {"student_id": mask_student_id(student_id), "stats": stats, "current_recommendations": recs}

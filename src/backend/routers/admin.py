@@ -1,8 +1,10 @@
 """管理端：数据导入与系统状态"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Student, Book, BorrowRecord, CourseRecord
+from ..models import Student, Book, BorrowRecord, CourseRecord, BehaviorLog
+from ..auth import verify_token
+from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -87,3 +89,69 @@ def sync_from_external():
     from data.data_sync import sync_all
     result = sync_all()
     return {"status": "ok", **result}
+
+
+@router.get("/stats")
+def get_admin_stats(payload: dict = Depends(verify_token)):
+    """管理端统计数据"""
+    if payload["role"] not in ("admin", "teacher"):
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+
+    from ..database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        total_students = db.query(Student).count()
+        total_borrows = db.query(BorrowRecord).count()
+        total_courses = db.query(CourseRecord).count()
+        total_books = db.query(Book).count()
+
+        # Today's metrics
+        today = datetime.utcnow().date()
+        today_start = datetime(today.year, today.month, today.day)
+        today_behaviors = db.query(BehaviorLog).filter(
+            BehaviorLog.timestamp >= today_start
+        ).count()
+
+        # Accuracy calculation: useful / (useful + skip) from behavior logs
+        useful_count = db.query(BehaviorLog).filter(
+            BehaviorLog.action_type == "useful"
+        ).count()
+        skip_count = db.query(BehaviorLog).filter(
+            BehaviorLog.action_type == "skip"
+        ).count()
+        total_feedback = useful_count + skip_count
+        accuracy = round(useful_count / total_feedback * 100, 1) if total_feedback > 0 else 0
+
+        return {
+            "total_students": total_students,
+            "total_borrows": total_borrows,
+            "total_courses": total_courses,
+            "total_books": total_books,
+            "today_recommendations": today_behaviors,
+            "useful_count": useful_count,
+            "skip_count": skip_count,
+            "accuracy": accuracy,
+            "model_status": "running",
+            "last_update": str(today),
+        }
+    finally:
+        db.close()
+
+
+@router.post("/model/update")
+def trigger_model_update(payload: dict = Depends(verify_token)):
+    """触发模型全量更新"""
+    if payload["role"] != "admin":
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+
+    # Re-sync data from external source
+    from data.data_sync import sync_all
+    result = sync_all()
+
+    # Log the update
+    import logging
+    logger = logging.getLogger("smart_library")
+    logger.info(f"Model update triggered by {payload.get('sub')}: {result}")
+
+    return {"status": "ok", "message": "模型已更新", "result": result}

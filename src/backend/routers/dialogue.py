@@ -60,24 +60,39 @@ async def plan_path(student_id: str, request: PathPlanRequest):
 
 @router.get("/search")
 async def semantic_search(q: str = "", student_id: str = ""):
-    """语义搜索端点"""
+    """语义搜索端点（LLM增强 + 关键词降级）"""
     if not q:
         return {"results": []}
-    # 降级方案：关键词匹配到馆藏
-    import re
     from ..database import SessionLocal
     from ..models import Book
+
+    # Try LLM interpretation first
+    try:
+        from llm.client import get_llm_client
+        client = get_llm_client()
+        # Ask LLM to extract search keywords from natural language query
+        prompt = f"从以下查询中提取3-5个关键词用于图书馆检索，只输出空格分隔的关键词：{q}"
+        llm_response = await client.chat_safe(prompt)
+        search_keywords = llm_response.strip().split()
+    except Exception:
+        import re
+        search_keywords = [t.strip() for t in re.split(r'[，,、\s]+', q) if t.strip()]
+
+    # Keyword search in database
     db = SessionLocal()
     try:
-        query_terms = [t.strip() for t in re.split(r'[，,、\s]+', q) if t.strip()]
         books = db.query(Book).all()
         results = []
         for book in books:
-            score = sum(1 for t in query_terms if t in book.title or t in book.summary)
+            score = sum(1 for kw in search_keywords if kw.lower() in (book.title + book.summary).lower())
             if score > 0:
-                results.append({"item_id": book.book_id, "title": book.title, "author": book.author,
-                                "score": score / len(query_terms), "available": book.available_copies > 0,
-                                "clc_number": book.clc_number})
+                results.append({
+                    "item_id": book.book_id, "title": book.title, "author": book.author,
+                    "score": min(score / len(search_keywords), 1.0),
+                    "available": book.available_copies > 0,
+                    "clc_number": book.clc_number,
+                    "summary": book.summary[:100] + "..." if len(book.summary) > 100 else book.summary,
+                })
         results.sort(key=lambda x: x["score"], reverse=True)
         return {"results": results[:10]}
     finally:
