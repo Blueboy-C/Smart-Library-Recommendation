@@ -69,11 +69,5 @@ def get_recommendations(student_id: str, top_k: int = 20, item_type: str = "book
 
 
 def _generate_reason(source: str, profile: dict, book) -> str:
-    if source == "cf":
-        return f"和你阅读偏好相似的同学也在读《{book.title}》"
-    elif source == "content":
-        domain = profile.get("domain_weights", {})
-        if domain:
-            top_domain = max(domain, key=domain.get)
-            return f"符合你在{top_domain}领域的阅读兴趣"
-    return f"《{book.title}》可能符合你的阅读兴趣"
+    from llm.fallback import fallback_recommendation_reason
+    return fallback_recommendation_reason(profile.get("major", ""), book.title, source)

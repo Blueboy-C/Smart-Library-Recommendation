@@ -1,7 +1,8 @@
 """教师端API端点"""
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Depends
 from ..schemas import InsightRequest
 from ..services.profile_service import build_profile
+from ..auth import verify_token
 from llm.client import get_llm_client
 from llm.prompts import TEACHER_INSIGHT
 
@@ -9,8 +10,10 @@ router = APIRouter(prefix="/api/teacher", tags=["teacher"])
 
 
 @router.get("/{dept}/heatmap")
-def get_heatmap(dept: str = "", grade: str = ""):
+def get_heatmap(dept: str = "", grade: str = "", payload: dict = Depends(verify_token)):
     """返回知识领域热力图数据（所有学生的领域分布聚合）"""
+    if payload["role"] not in ("teacher", "admin"):
+        raise HTTPException(status_code=403, detail="需要教师或管理员权限")
     from ..database import SessionLocal
     from ..models import Student, BorrowRecord
     from collections import Counter
@@ -26,7 +29,7 @@ def get_heatmap(dept: str = "", grade: str = ""):
         students = query.all()
 
         heatmap = []
-        for s in students[:100]:  # 限制100人以控制响应大小
+        for s in students[:100]:
             borrows = db.query(BorrowRecord).filter(BorrowRecord.student_id == s.student_id).all()
             domain_counts = Counter()
             for b in borrows:
@@ -39,8 +42,10 @@ def get_heatmap(dept: str = "", grade: str = ""):
 
 
 @router.get("/{dept}/clusters")
-def get_clusters(dept: str = "", grade: str = ""):
-    """返回学生行为分群数据（简化版：按阅读深度和广度分群）"""
+def get_clusters(dept: str = "", grade: str = "", payload: dict = Depends(verify_token)):
+    """返回学生行为分群数据"""
+    if payload["role"] not in ("teacher", "admin"):
+        raise HTTPException(status_code=403, detail="需要教师或管理员权限")
     from ..database import SessionLocal
     from ..models import Student, BorrowRecord
     from data.domain_mapping import clc_to_domain
@@ -76,12 +81,16 @@ def get_clusters(dept: str = "", grade: str = ""):
 
 
 @router.post("/{dept}/insight")
-async def generate_insight(dept: str = "", request: InsightRequest = InsightRequest()):
+async def generate_insight(dept: str = "", request: InsightRequest = InsightRequest(),
+                            payload: dict = Depends(verify_token)):
     """生成教师洞察报告"""
+    if payload["role"] not in ("teacher", "admin"):
+        raise HTTPException(status_code=403, detail="需要教师或管理员权限")
     from ..database import SessionLocal
     from ..models import BorrowRecord
     from collections import Counter
     from data.domain_mapping import clc_to_domain
+    from llm.fallback import fallback_teacher_insight
 
     db = SessionLocal()
     try:
@@ -94,7 +103,9 @@ async def generate_insight(dept: str = "", request: InsightRequest = InsightRequ
 
         client = get_llm_client()
         prompt = TEACHER_INSIGHT.format(data_summary=f"总借阅次数：{total}次\n领域分布：\n{summary}")
-        response = await client.chat(prompt)
+        response = await client.chat_safe(prompt)
+        if response.startswith("[智能助手暂时不可用"):
+            response = fallback_teacher_insight()
         return {"insight": response, "raw_data": {"total_borrows": total, "top_domains": domain_counts.most_common(5)}}
     finally:
         db.close()

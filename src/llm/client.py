@@ -57,6 +57,22 @@ class LLMClient:
                         except json.JSONDecodeError:
                             continue
 
+    async def chat_safe(self, prompt: str, system: str = "", max_tokens: int | None = None,
+                        temperature: float = 0.7) -> str:
+        """带降级的对话请求"""
+        try:
+            return await self.chat(prompt, system, max_tokens, temperature)
+        except Exception as e:
+            return f"[智能助手暂时不可用，请稍后重试。错误详情：{str(e)[:100]}]"
+
+    async def stream_safe(self, prompt: str, system: str = "", max_tokens: int | None = None):
+        """带降级的流式对话"""
+        try:
+            async for token in self.stream(prompt, system, max_tokens):
+                yield token
+        except Exception:
+            yield "智能助手暂时不可用，请稍后重试。"
+
 
 _llm_client: LLMClient | None = None
 
